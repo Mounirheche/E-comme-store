@@ -1,0 +1,7 @@
+node_modules/
+open-design-main/
+open-design.zip
+_server.log
+*.log
+.env
+config.js

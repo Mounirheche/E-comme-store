@@ -1,0 +1,492 @@
+﻿<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>تفاصيل المنتج — Dz One</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #070B12; overflow-x: hidden; }
+
+  @keyframes fadeInUp { from { opacity: 0; transform: translateY(52px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes fadeIn   { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes revealUp { from { opacity: 0; transform: translateY(40px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes shimmer  { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+
+  .prod-card-blue:hover   { transform: translateY(-8px); box-shadow: 0 26px 64px rgba(37,99,235,0.2) !important; }
+  .prod-card-red:hover    { transform: translateY(-8px); box-shadow: 0 26px 64px rgba(239,68,68,0.15) !important; }
+  .prod-card-indigo:hover { transform: translateY(-8px); box-shadow: 0 26px 64px rgba(99,102,241,0.17) !important; }
+  .prod-card-green:hover  { transform: translateY(-8px); box-shadow: 0 26px 64px rgba(52,211,153,0.12) !important; }
+  .prod-card-purple:hover { transform: translateY(-8px); box-shadow: 0 26px 64px rgba(139,92,246,0.17) !important; }
+  .prod-card-orange:hover { transform: translateY(-8px); box-shadow: 0 26px 64px rgba(251,146,60,0.17) !important; }
+  .prod-card-sky:hover    { transform: translateY(-8px); box-shadow: 0 26px 64px rgba(56,189,248,0.14) !important; }
+  .prod-card-amber:hover  { transform: translateY(-8px); box-shadow: 0 26px 64px rgba(251,191,36,0.14) !important; }
+  .prod-card-gray:hover   { transform: translateY(-8px); box-shadow: 0 26px 64px rgba(148,163,184,0.12) !important; }
+  .prod-card-blue,.prod-card-red,.prod-card-indigo,.prod-card-green,.prod-card-purple,
+  .prod-card-orange,.prod-card-sky,.prod-card-amber,.prod-card-gray { transition: transform 0.32s ease, box-shadow 0.32s ease; }
+
+  .btn-cart:hover  { box-shadow: 0 6px 24px rgba(37,99,235,0.55) !important; }
+  .btn-deal:hover  { box-shadow: 0 6px 24px rgba(239,68,68,0.5) !important; }
+  .btn-cart, .btn-deal { transition: box-shadow 0.25s; }
+
+  .nav-link { transition: all 0.2s; }
+  .nav-link:hover { color: #fff !important; background: rgba(255,255,255,0.05) !important; }
+  .icon-action { transition: all 0.22s; }
+  .icon-action:hover { border-color: rgba(37,99,235,0.5) !important; background: rgba(37,99,235,0.1) !important; }
+  #cart-drawer  { transition: transform 0.36s cubic-bezier(0.22,1,0.36,1); }
+  #cart-overlay { transition: opacity 0.3s ease; }
+
+  .footer-link { transition: color 0.2s; }
+  .footer-link:hover { color: #60A5FA !important; }
+  .social-btn { transition: all 0.22s; }
+  .social-btn:hover { background: rgba(37,99,235,0.12) !important; border-color: rgba(37,99,235,0.35) !important; }
+
+  .qty-btn { transition: all 0.2s; }
+  .qty-btn:hover { background: rgba(37,99,235,0.2) !important; border-color: rgba(37,99,235,0.4) !important; }
+
+  .btn-add-cart { transition: all 0.3s; }
+  .btn-add-cart:hover { transform: translateY(-3px); box-shadow: 0 12px 36px rgba(37,99,235,0.55) !important; }
+
+  .btn-add-wishlist { transition: all 0.25s; }
+  .btn-add-wishlist:hover { border-color: rgba(239,68,68,0.5) !important; background: rgba(239,68,68,0.08) !important; }
+
+  .dz-prod-link { text-decoration: none; display: block; }
+
+  html.dz-light #main-nav.scrolled { background: rgba(238,242,255,0.96) !important; border-bottom-color: rgba(37,99,235,0.12) !important; box-shadow: 0 2px 36px rgba(0,0,0,0.08) !important; }
+  html.dz-light .nav-link:hover { color: #1E3A8A !important; background: rgba(37,99,235,0.08) !important; }
+</style>
+<link rel="stylesheet" href="/responsive.css">
+<script>try{if(localStorage.getItem('dz_lang')==='fr'){var _lf=document.createElement('style');_lf.id='dz-lf';_lf.textContent='body{opacity:0}';document.head.appendChild(_lf);}}catch(e){}</script>
+<script>try{if(localStorage.getItem('dz_theme')==='light'){document.documentElement.classList.add('dz-light');var _af=document.createElement('style');_af.textContent='html.dz-light,html.dz-light body,html.dz-light #page-root{background:#F0F4FF!important;color:#111827!important}'+'html.dz-light [style*="#070B12"]{background:#F0F4FF!important}'+'html.dz-light [style*="#0A1220"]{background:#E8EEFF!important}'+'html.dz-light [style*="#0A1120"]{background:#ECEFFF!important}'+'html.dz-light [style*="#080E1C"]{background:#EEF3FF!important}'+'html.dz-light [style*="#0D1421"]{background:#EEF2FF!important}'+'html.dz-light [style*="#040710"]{background:#E4EBFF!important}'+'html.dz-light [style*="#141E30"]{background:#FFFFFF!important}'+'html.dz-light [style*="#1C2A42"]{background:#EDF2FF!important}'+'html.dz-light [style*="#1E2E48"]{background:#DCE7FF!important}'+'html.dz-light [style*="#111B2E"]{background:#F8FAFF!important;color:#111827!important}'+'html.dz-light [style*="#0E1929"]{background:#FFFFFF!important}'+'html.dz-light [style*="#111B30"]{background:#F8FAFF!important}'+'html.dz-light [style*="#060D1A"]{background:#F0F4FF!important}'+'html.dz-light [style*="color:#fff"]{color:#111827!important}'+'html.dz-light [style*="color: #fff"]{color:#111827!important}'+'html.dz-light [style*="color:#ffffff"]{color:#111827!important}'+'html.dz-light [style*="color:#FFFFFF"]{color:#111827!important}'+'html.dz-light [style*="color:#94A3B8"]{color:#374151!important}'+'html.dz-light [style*="color:#475569"]{color:#4B5563!important}';document.head.appendChild(_af);}}catch(e){}</script>
+</head>
+<body>
+<div id="page-root" style="font-family:'Cairo',sans-serif; background:#070B12; color:#fff; min-height:100vh;">
+
+  <!-- NAVBAR -->
+  <nav id="main-nav" style="position:fixed;top:0;right:0;left:0;z-index:1000;height:68px;display:flex;align-items:center;justify-content:space-between;padding:0 52px;transition:background 0.4s ease,box-shadow 0.4s ease,border-color 0.4s ease;border-bottom:1px solid transparent;">
+    <a href="/" style="display:flex;align-items:center;gap:10px;cursor:pointer;text-decoration:none;">
+      <div style="width:34px;height:34px;background:linear-gradient(135deg,#2563EB,#1D4ED8);border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 4px 14px rgba(37,99,235,0.4);">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+      </div>
+      <div>
+        <div style="font-weight:800;font-size:17px;letter-spacing:-0.3px;color:#fff;line-height:1.1;">Dz One</div>
+        <div style="font-size:9px;color:#475569;line-height:1;margin-top:2px;">تقنية · خبرة · أمان</div>
+      </div>
+    </a>
+    <div style="display:flex;align-items:center;gap:2px;">
+      <a href="/" class="nav-link" style="font-size:14px;font-weight:500;color:#94A3B8;text-decoration:none;padding:8px 16px;border-radius:8px;">الرئيسية</a>
+      <a href="/store.html" class="nav-link" style="font-size:14px;font-weight:700;color:#60A5FA;text-decoration:none;padding:8px 16px;background:rgba(37,99,235,0.1);border-radius:8px;border:1px solid rgba(37,99,235,0.22);">المتجر</a>
+      <a href="/builder.html" class="nav-link" style="font-size:14px;font-weight:500;color:#94A3B8;text-decoration:none;padding:8px 16px;border-radius:8px;">PC Builder</a>
+      <a href="/track.html" class="nav-link" style="font-size:14px;font-weight:500;color:#94A3B8;text-decoration:none;padding:8px 16px;border-radius:8px;">تتبع طلبي</a>
+      <a href="/wishlist.html" class="nav-link" style="font-size:14px;font-weight:500;color:#94A3B8;text-decoration:none;padding:8px 16px;border-radius:8px;">المفضلة</a>
+      <a href="/about.html" class="nav-link" style="font-size:14px;font-weight:500;color:#94A3B8;text-decoration:none;padding:8px 16px;border-radius:8px;">من نحن</a>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;">
+      <button id="theme-toggle" type="button" title="تبديل الوضع" style="position:relative;width:44px;height:24px;background:#1C2A42;border:1px solid rgba(255,255,255,0.12);border-radius:12px;cursor:pointer;transition:all 0.35s;padding:0;flex-shrink:0;">
+        <div id="theme-thumb" style="position:absolute;top:3px;right:3px;width:16px;height:16px;background:linear-gradient(135deg,#60A5FA,#3B82F6);border-radius:50%;transition:all 0.35s ease;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(37,99,235,0.5);">
+          <svg id="icon-moon" width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+          <svg id="icon-sun" width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:none;"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+        </div>
+      </button>
+      <div style="display:flex;align-items:center;gap:5px;font-size:13px;color:#475569;">
+        <span data-lang-btn="ar" style="cursor:pointer;font-weight:800;color:#60A5FA;">AR</span><span style="opacity:0.3;color:#475569;">|</span><span data-lang-btn="fr" style="cursor:pointer;color:#475569;">FR</span>
+      </div>
+      <a href="/wishlist.html" id="nav-wl-icon" class="icon-action" style="width:38px;height:38px;border:1px solid rgba(255,255,255,0.09);border-radius:9px;display:flex;align-items:center;justify-content:center;cursor:pointer;text-decoration:none;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+      </a>
+      <div id="cart-btn" class="icon-action" style="position:relative;width:38px;height:38px;border:1px solid rgba(255,255,255,0.09);border-radius:9px;display:flex;align-items:center;justify-content:center;cursor:pointer;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+        <span id="cart-badge" style="display:none;position:absolute;top:-7px;right:-7px;min-width:18px;height:18px;padding:0 4px;background:#EF4444;border-radius:9px;font-size:10px;font-weight:800;color:#fff;align-items:center;justify-content:center;border:2px solid #070B12;line-height:1;"></span>
+      </div>
+    </div>
+  </nav>
+
+  <!-- PAGE CONTENT -->
+  <div style="padding-top:68px;">
+
+    <!-- BREADCRUMB -->
+    <div style="padding:20px 60px;background:#0A1220;border-bottom:1px solid rgba(255,255,255,0.05);">
+      <div style="max-width:1200px;margin:0 auto;display:flex;align-items:center;gap:8px;font-size:13px;">
+        <a href="/" style="color:#475569;text-decoration:none;">الرئيسية</a>
+        <span style="color:#334155;">/</span>
+        <a href="/store.html" style="color:#475569;text-decoration:none;">المتجر</a>
+        <span style="color:#334155;">/</span>
+        <span id="breadcrumb-cat" style="color:#475569;"></span>
+        <span id="breadcrumb-sep" style="color:#334155;display:none;">/</span>
+        <span id="breadcrumb-name" style="color:#60A5FA;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:320px;"></span>
+      </div>
+    </div>
+
+    <!-- PRODUCT DETAIL -->
+    <div id="product-container" style="max-width:1200px;margin:0 auto;padding:48px 60px;">
+
+      <!-- Loading skeleton -->
+      <div id="product-skeleton" style="display:grid;grid-template-columns:45% 55%;gap:48px;align-items:start;">
+        <div style="height:380px;background:linear-gradient(90deg,#141E30 25%,#1E2E48 50%,#141E30 75%);background-size:200% 100%;animation:shimmer 1.5s ease-in-out infinite;border-radius:24px;"></div>
+        <div style="padding-top:20px;">
+          <div style="height:12px;width:30%;background:#1E2E48;border-radius:6px;margin-bottom:16px;"></div>
+          <div style="height:28px;width:85%;background:#1E2E48;border-radius:8px;margin-bottom:16px;"></div>
+          <div style="height:12px;width:40%;background:#1E2E48;border-radius:6px;margin-bottom:24px;"></div>
+          <div style="height:36px;width:50%;background:#1E2E48;border-radius:8px;margin-bottom:24px;"></div>
+          <div style="height:12px;width:95%;background:#1E2E48;border-radius:6px;margin-bottom:10px;"></div>
+          <div style="height:12px;width:80%;background:#1E2E48;border-radius:6px;margin-bottom:10px;"></div>
+          <div style="height:12px;width:88%;background:#1E2E48;border-radius:6px;margin-bottom:32px;"></div>
+          <div style="height:52px;background:#1E2E48;border-radius:12px;"></div>
+        </div>
+      </div>
+
+      <!-- Product detail (hidden until loaded) -->
+      <div id="product-detail" style="display:none;"></div>
+
+      <!-- Error state -->
+      <div id="product-error" style="display:none;text-align:center;padding:80px 0;">
+        <div style="font-size:64px;margin-bottom:20px;">🔍</div>
+        <h2 style="font-size:24px;font-weight:800;color:#fff;margin:0 0 12px;">المنتج غير موجود</h2>
+        <p style="font-size:15px;color:#475569;margin:0 0 28px;">لم نتمكن من العثور على المنتج المطلوب</p>
+        <a href="/store.html" style="display:inline-block;padding:13px 32px;background:linear-gradient(135deg,#2563EB,#1D4ED8);border-radius:12px;color:#fff;text-decoration:none;font-weight:700;font-size:15px;">العودة للمتجر</a>
+      </div>
+    </div>
+
+    <!-- RELATED PRODUCTS -->
+    <div id="related-section" style="display:none;padding:0 60px 80px;">
+      <div style="max-width:1200px;margin:0 auto;">
+        <div style="display:flex;align-items:center;gap:14px;margin-bottom:36px;">
+          <div style="width:4px;height:28px;background:linear-gradient(to bottom,#2563EB,#7C3AED);border-radius:4px;"></div>
+          <h2 style="font-size:26px;font-weight:800;color:#fff;margin:0;">المنتجات المشابهة</h2>
+        </div>
+        <div id="related-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:22px;"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- FOOTER -->
+  <footer id="main-footer" style="background:#040710;border-top:1px solid rgba(255,255,255,0.05);padding:80px 60px 40px;">
+    <div style="max-width:1200px;margin:0 auto;">
+      <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1.2fr;gap:56px;margin-bottom:64px;">
+        <div>
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;">
+            <div style="width:34px;height:34px;background:linear-gradient(135deg,#2563EB,#1D4ED8);border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 4px 12px rgba(37,99,235,0.35);"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></div>
+            <div><div style="font-weight:800;font-size:17px;color:#fff;line-height:1.1;">Dz One</div><div style="font-size:9px;color:#334155;margin-top:2px;">تقنية · خبرة · أمان</div></div>
+          </div>
+          <p style="font-size:13px;color:#334155;line-height:1.9;margin:0 0 28px;max-width:255px;">وجهتك الأولى للتجميعات الجاهزة والمكونات التقنية من الجزائر.</p>
+        </div>
+        <div>
+          <h4 style="font-size:14px;font-weight:700;color:#fff;margin:0 0 24px;">الفئات</h4>
+          <div style="display:flex;flex-direction:column;gap:12px;">
+            <a href="/store.html?cat=تجميعات جاهزة" class="footer-link" style="font-size:13px;color:#334155;text-decoration:none;">تجميعات جاهزة</a>
+            <a href="/store.html?cat=معالجات" class="footer-link" style="font-size:13px;color:#334155;text-decoration:none;">معالجات</a>
+            <a href="/store.html?cat=كروت شاشة" class="footer-link" style="font-size:13px;color:#334155;text-decoration:none;">كروت شاشة</a>
+            <a href="/store.html?cat=لوحات أم" class="footer-link" style="font-size:13px;color:#334155;text-decoration:none;">لوحات أم</a>
+            <a href="/store.html?cat=ذاكرة RAM" class="footer-link" style="font-size:13px;color:#334155;text-decoration:none;">ذاكرة RAM</a>
+            <a href="/store.html?cat=تخزين" class="footer-link" style="font-size:13px;color:#334155;text-decoration:none;">تخزين</a>
+          </div>
+        </div>
+        <div>
+          <h4 style="font-size:14px;font-weight:700;color:#fff;margin:0 0 24px;">روابط سريعة</h4>
+          <div style="display:flex;flex-direction:column;gap:12px;">
+            <a href="/" class="footer-link" style="font-size:13px;color:#334155;text-decoration:none;">الرئيسية</a>
+            <a href="/store.html" class="footer-link" style="font-size:13px;color:#334155;text-decoration:none;">المتجر</a>
+            <a href="/builder.html" class="footer-link" style="font-size:13px;color:#334155;text-decoration:none;">PC Builder</a>
+            <a href="/track.html" class="footer-link" style="font-size:13px;color:#334155;text-decoration:none;">تتبع طلبي</a>
+            <a href="/wishlist.html" class="footer-link" style="font-size:13px;color:#334155;text-decoration:none;">المفضلة</a>
+          </div>
+        </div>
+        <div>
+          <h4 style="font-size:14px;font-weight:700;color:#fff;margin:0 0 24px;">تواصل معنا</h4>
+          <p style="font-size:13px;color:#334155;line-height:1.8;margin:0 0 22px;">تابعنا لآخر العروض والمنتجات الجديدة</p>
+          <div style="display:flex;gap:10px;">
+            <div class="social-btn" style="width:38px;height:38px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#475569" stroke-width="2"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg></div>
+            <div class="social-btn" style="width:38px;height:38px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#475569" stroke-width="2"><path d="M22.54 6.42a2.78 2.78 0 0 0-1.95-1.96C18.88 4 12 4 12 4s-6.88 0-8.59.46A2.78 2.78 0 0 0 1.46 6.42 29 29 0 0 0 1 12a29 29 0 0 0 .46 5.58A2.78 2.78 0 0 0 3.41 19.6C5.12 20 12 20 12 20s6.88 0 8.59-.4a2.78 2.78 0 0 0 1.95-1.95A29 29 0 0 0 23 12a29 29 0 0 0-.46-5.58z"/><polygon points="9.75 15.02 15.5 12 9.75 8.98 9.75 15.02"/></svg></div>
+            <div class="social-btn" style="width:38px;height:38px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#475569" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="0.5" fill="#475569"/></svg></div>
+          </div>
+        </div>
+      </div>
+      <div style="border-top:1px solid rgba(255,255,255,0.04);padding-top:28px;display:flex;align-items:center;justify-content:space-between;">
+        <span style="font-size:12px;color:#1E293B;">© TechStore.dz 2025 · صنع بشغف من الجزائر</span>
+        <span style="font-size:12px;color:#1E293B;">جميع الحقوق محفوظة</span>
+      </div>
+    </div>
+  </footer>
+
+</div>
+
+<script src="/config.js"></script>
+<script src="/node_modules/@supabase/supabase-js/dist/umd/supabase.js"></script>
+<script src="/shared.js"></script>
+<script src="/lang.js"></script>
+<script src="/responsive.js" defer></script>
+<script>
+(function() {
+  var qty = 1;
+  var currentProduct = null;
+
+  // Stars helper
+  function stars(r) {
+    var n = Math.min(5, Math.round(r || 4.5));
+    return '★'.repeat(n) + '☆'.repeat(5 - n);
+  }
+
+  // Image HTML — supports single image or JSON array ["url1","url2",...]
+  function imgHTMLLarge(p) {
+    var imgs = [];
+    var raw = p.img || '';
+    if (raw.charAt(0) === '[') {
+      try { var arr = JSON.parse(raw); if (arr && arr.length) imgs = arr.filter(function(x){ return x && String(x).trim(); }); } catch(e) {}
+    }
+    if (!imgs.length && raw && (raw.indexOf('data:') === 0 || raw.indexOf('http') === 0 || raw.charAt(0) === '/')) {
+      imgs = [raw];
+    }
+    if (!imgs.length) return '<span style="font-size:120px;position:relative;z-index:1;">📦</span>';
+    var esc = function(s){ return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;'); };
+    var mainImg = '<img id="prod-main-img" src="' + esc(imgs[0]) + '" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:1;" onerror="this.style.opacity=\'0\'">';
+    if (imgs.length <= 1) return mainImg;
+    var thumbs = imgs.map(function(src, i) {
+      return '<button data-src="' + esc(src) + '" onclick="window._switchProdImg(this)" style="width:56px;height:56px;border-radius:10px;overflow:hidden;border:2px solid ' + (i === 0 ? '#60A5FA' : 'rgba(255,255,255,0.2)') + ';cursor:pointer;padding:0;background:none;flex-shrink:0;transition:border-color 0.2s;">' +
+        '<img src="' + esc(src) + '" style="width:100%;height:100%;object-fit:cover;" onerror="this.parentElement.style.display=\'none\'">' +
+        '</button>';
+    }).join('');
+    return mainImg +
+      '<div style="position:absolute;bottom:14px;left:50%;transform:translateX(-50%);display:flex;gap:7px;z-index:3;background:rgba(0,0,0,0.6);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-radius:14px;padding:8px 10px;max-width:calc(100% - 32px);overflow-x:auto;">' +
+      thumbs + '</div>';
+  }
+
+  window._switchProdImg = function(btn) {
+    var src = btn.getAttribute('data-src');
+    var main = document.getElementById('prod-main-img');
+    if (main && src) { main.src = src; main.style.opacity = '1'; }
+    var btns = btn.parentElement.querySelectorAll('button');
+    for (var i = 0; i < btns.length; i++) btns[i].style.borderColor = 'rgba(255,255,255,0.2)';
+    btn.style.borderColor = '#60A5FA';
+  };
+
+  function renderProduct(p) {
+    currentProduct = p;
+    window.DZ_PRODUCTS = window.DZ_PRODUCTS || {};
+    window.DZ_PRODUCTS[p.id] = p;
+
+    var cs   = window.DZ_catStyle(p.category_ar);
+    var disc = (p.old_price && p.old_price > p.price) ? Math.round((1 - p.price / p.old_price) * 100) : 0;
+    var ps   = p.price.toLocaleString('fr-DZ');
+    var ops  = p.old_price ? p.old_price.toLocaleString('fr-DZ') : '';
+
+    // Breadcrumb
+    var catEl = document.getElementById('breadcrumb-cat');
+    var sepEl = document.getElementById('breadcrumb-sep');
+    var nameEl = document.getElementById('breadcrumb-name');
+    if (catEl) catEl.textContent = p.category_ar || '';
+    if (sepEl) sepEl.style.display = 'inline';
+    if (nameEl) nameEl.textContent = p.name || '';
+
+    // Update page title
+    document.title = (p.name || 'منتج') + ' — Dz One';
+
+    // Price HTML
+    var priceHTML = '';
+    if (p.old_price && p.old_price > p.price) {
+      priceHTML = '<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:8px;">' +
+        '<span style="font-size:36px;font-weight:900;color:#60A5FA;letter-spacing:-1px;">' + ps + ' دج</span>' +
+        '<span style="font-size:18px;color:#475569;text-decoration:line-through;">' + ops + ' دج</span>' +
+        (disc > 0 ? '<span style="font-size:13px;color:#F87171;background:rgba(239,68,68,0.12);padding:4px 12px;border-radius:8px;font-weight:700;">خصم ' + disc + '%</span>' : '') +
+        '</div>';
+    } else {
+      priceHTML = '<div style="font-size:36px;font-weight:900;color:#60A5FA;letter-spacing:-1px;margin-bottom:8px;">' + ps + ' دج</div>';
+    }
+
+    // Specs HTML — use shared resolver from shared.js
+    var specsHTML = '';
+    var specsArr = window.DZ_resolveSpecs ? window.DZ_resolveSpecs(p.specs_ar) : (Array.isArray(p.specs_ar) ? p.specs_ar : []);
+    if (specsArr.length > 0) {
+      specsHTML = '<div style="margin-bottom:28px;">' +
+        '<h3 style="font-size:15px;font-weight:700;color:#fff;margin:0 0 14px;">مواصفات المنتج</h3>' +
+        '<div style="display:flex;flex-direction:column;gap:8px;">' +
+        specsArr.map(function(spec) {
+          return '<div style="display:flex;align-items:flex-start;gap:10px;">' +
+            '<span style="color:#34D399;font-size:15px;flex-shrink:0;margin-top:1px;">✓</span>' +
+            '<span style="font-size:14px;color:#94A3B8;line-height:1.5;">' + String(spec) + '</span>' +
+            '</div>';
+        }).join('') +
+        '</div></div>';
+    }
+
+    // Badge HTML
+    var badgeHTML = '';
+    if (p.badge_ar) {
+      badgeHTML = '<div style="display:inline-flex;padding:4px 12px;background:#F59E0B;border-radius:6px;font-size:11px;font-weight:800;color:#000;margin-bottom:16px;">' + p.badge_ar + '</div>';
+    }
+
+    var inStock = p.in_stock !== false;
+
+    var html = '<div style="display:grid;grid-template-columns:45% 55%;gap:48px;align-items:start;animation:fadeInUp 0.7s ease both;">' +
+
+      // LEFT: Image area
+      '<div style="position:relative;height:380px;background:linear-gradient(155deg,' + cs.bg + ' 0%,' + cs.dark + ' 100%);border-radius:24px;overflow:hidden;border:1px solid rgba(255,255,255,0.08);">' +
+        '<div style="position:absolute;inset:0;background:radial-gradient(circle at 50% 50%,' + cs.glow + ' 0%,transparent 70%);z-index:2;pointer-events:none;"></div>' +
+        imgHTMLLarge(p) +
+        (disc > 0 ? '<div style="position:absolute;top:16px;right:16px;padding:6px 16px;background:linear-gradient(135deg,#EF4444,#B91C1C);border-radius:10px;font-size:13px;font-weight:800;color:#fff;box-shadow:0 4px 14px rgba(239,68,68,0.45);z-index:4;">خصم ' + disc + '%</div>' : '') +
+      '</div>' +
+
+      // RIGHT: Product info
+      '<div style="padding-top:8px;">' +
+        // Category + brand
+        '<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">' +
+          '<span style="font-size:12px;font-weight:700;color:' + cs.text + ';background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);padding:4px 12px;border-radius:20px;">' + (p.category_ar || '') + '</span>' +
+          (p.brand ? '<span style="font-size:12px;color:#475569;font-weight:600;">' + p.brand + '</span>' : '') +
+        '</div>' +
+        badgeHTML +
+        // Product name
+        '<h1 style="font-size:28px;font-weight:900;color:#fff;margin:0 0 16px;line-height:1.25;">' + (p.name || '') + '</h1>' +
+        // Rating
+        '<div style="display:flex;align-items:center;gap:8px;margin-bottom:20px;">' +
+          '<span style="color:#F59E0B;font-size:16px;">' + stars(p.rating) + '</span>' +
+          '<span style="font-size:14px;color:#475569;">(' + (p.reviews || 0) + ' تقييم)</span>' +
+        '</div>' +
+        // Price
+        priceHTML +
+        // Availability
+        '<div style="display:flex;align-items:center;gap:8px;margin-bottom:24px;">' +
+          '<span style="font-size:13px;color:#475569;">توفر:</span>' +
+          (inStock
+            ? '<span style="font-size:13px;color:#34D399;font-weight:700;display:flex;align-items:center;gap:5px;"><span style="width:8px;height:8px;background:#34D399;border-radius:50%;display:inline-block;"></span>متاح</span>'
+            : '<span style="font-size:13px;color:#F87171;font-weight:700;display:flex;align-items:center;gap:5px;"><span style="width:8px;height:8px;background:#F87171;border-radius:50%;display:inline-block;"></span>غير متاح</span>') +
+        '</div>' +
+        // Specs
+        specsHTML +
+        // Quantity selector
+        '<div style="margin-bottom:20px;">' +
+          '<div style="font-size:13px;color:#475569;font-weight:600;margin-bottom:10px;">الكمية</div>' +
+          '<div style="display:flex;align-items:center;gap:10px;">' +
+            '<button class="qty-btn" id="qty-minus" style="width:40px;height:40px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:10px;color:#fff;cursor:pointer;font-size:20px;display:flex;align-items:center;justify-content:center;font-family:\'Cairo\',sans-serif;">−</button>' +
+            '<span id="qty-display" style="font-size:18px;font-weight:800;color:#fff;min-width:36px;text-align:center;">1</span>' +
+            '<button class="qty-btn" id="qty-plus" style="width:40px;height:40px;background:rgba(37,99,235,0.15);border:1px solid rgba(37,99,235,0.3);border-radius:10px;color:#60A5FA;cursor:pointer;font-size:20px;display:flex;align-items:center;justify-content:center;font-family:\'Cairo\',sans-serif;">+</button>' +
+          '</div>' +
+        '</div>' +
+        // Add to cart button
+        '<button class="btn-add-cart" id="add-to-cart-btn" style="width:100%;padding:15px;background:linear-gradient(135deg,#2563EB,#1D4ED8);border:none;border-radius:14px;color:#fff;font-family:\'Cairo\',sans-serif;font-size:16px;font-weight:800;cursor:pointer;box-shadow:0 6px 24px rgba(37,99,235,0.4);margin-bottom:12px;">أضف للسلة</button>' +
+        // Add to wishlist button
+        '<button class="btn-add-wishlist" id="add-to-wishlist-btn" style="width:100%;padding:13px;background:transparent;border:1px solid rgba(255,255,255,0.1);border-radius:14px;color:#94A3B8;font-family:\'Cairo\',sans-serif;font-size:15px;font-weight:700;cursor:pointer;margin-bottom:20px;">أضف للمفضلة 🤍</button>' +
+        // Delivery badge
+        '<div style="background:rgba(37,99,235,0.06);border:1px solid rgba(37,99,235,0.14);border-radius:14px;padding:16px 18px;display:flex;align-items:center;gap:14px;">' +
+          '<div style="width:40px;height:40px;flex-shrink:0;background:rgba(37,99,235,0.1);border:1px solid rgba(37,99,235,0.2);border-radius:10px;display:flex;align-items:center;justify-content:center;">' +
+            '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#60A5FA" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"/><path d="m16 8 4 0 3 5 0 5h-7V8Z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>' +
+          '</div>' +
+          '<div>' +
+            '<div style="font-size:13px;font-weight:700;color:#fff;margin-bottom:3px;">توصيل لكل الجزائر · 58 ولاية</div>' +
+            '<div style="font-size:12px;color:#475569;">توصيل سريع لجميع الولايات بدون استثناء</div>' +
+          '</div>' +
+        '</div>' +
+        // Back to store
+        '<div style="margin-top:16px;">' +
+          '<a href="/store.html" style="font-size:13px;color:#475569;text-decoration:none;display:flex;align-items:center;gap:6px;transition:color 0.2s;" onmouseover="this.style.color=\'#60A5FA\'" onmouseout="this.style.color=\'#475569\'">← العودة للمتجر</a>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+
+    var detailEl = document.getElementById('product-detail');
+    if (detailEl) {
+      detailEl.innerHTML = html;
+      detailEl.style.display = 'block';
+    }
+
+    // Wire qty buttons
+    var minusBtn = document.getElementById('qty-minus');
+    var plusBtn  = document.getElementById('qty-plus');
+    var qtyDisp  = document.getElementById('qty-display');
+
+    if (minusBtn) minusBtn.addEventListener('click', function() {
+      if (qty > 1) { qty--; if (qtyDisp) qtyDisp.textContent = qty; }
+    });
+    if (plusBtn) plusBtn.addEventListener('click', function() {
+      qty++;
+      if (qtyDisp) qtyDisp.textContent = qty;
+    });
+
+    // Wire add to cart
+    var cartBtn = document.getElementById('add-to-cart-btn');
+    if (cartBtn) cartBtn.addEventListener('click', function() {
+      if (window.DZ_addToCart) window.DZ_addToCart(p, qty);
+    });
+
+    // Wire add to wishlist
+    var wlBtn = document.getElementById('add-to-wishlist-btn');
+    if (wlBtn) wlBtn.addEventListener('click', function() {
+      if (window.DZ_toggleWishlist) {
+        window.DZ_toggleWishlist(p.id, null);
+        var isWl = window.DZ_isWishlisted && window.DZ_isWishlisted(p.id);
+        wlBtn.textContent = isWl ? 'في المفضلة ❤️' : 'أضف للمفضلة 🤍';
+      }
+    });
+    // Set initial wishlist state
+    if (window.DZ_isWishlisted && window.DZ_isWishlisted(p.id)) {
+      if (wlBtn) wlBtn.textContent = 'في المفضلة ❤️';
+    }
+
+    // Translate if needed
+    if (window.DZ_translateNew) window.DZ_translateNew(detailEl);
+  }
+
+  function loadRelated(product) {
+    var sb = window.DZ_SB;
+    if (!sb || !product) return;
+    sb.from('products').select('*').eq('category_ar', product.category_ar).neq('id', product.id).order('reviews', {ascending: false}).limit(4)
+      .then(function(r) {
+        if (r.error || !r.data || r.data.length === 0) return;
+        var sec = document.getElementById('related-section');
+        var grid = document.getElementById('related-grid');
+        if (!sec || !grid) return;
+        r.data.forEach(function(p) {
+          window.DZ_PRODUCTS = window.DZ_PRODUCTS || {};
+          window.DZ_PRODUCTS[p.id] = p;
+        });
+        grid.innerHTML = r.data.map(function(p, i) {
+          return window.DZ_productCardHTML(p, i * 100, false);
+        }).join('');
+        sec.style.display = 'block';
+        if (window.DZ_setupReveal) window.DZ_setupReveal();
+        if (window.DZ_translateNew) window.DZ_translateNew(grid);
+      }).catch(function(e) { console.error('loadRelated:', e); });
+  }
+
+  function loadProduct() {
+    var params = new URLSearchParams(window.location.search);
+    var id = params.get('id');
+    if (!id) {
+      document.getElementById('product-skeleton').style.display = 'none';
+      document.getElementById('product-error').style.display = 'block';
+      return;
+    }
+
+    var sb = window.DZ_SB;
+    if (!sb) {
+      document.getElementById('product-skeleton').style.display = 'none';
+      document.getElementById('product-error').style.display = 'block';
+      return;
+    }
+
+    sb.from('products').select('*').eq('id', id).single()
+      .then(function(r) {
+        document.getElementById('product-skeleton').style.display = 'none';
+        if (r.error || !r.data) {
+          document.getElementById('product-error').style.display = 'block';
+          return;
+        }
+        renderProduct(r.data);
+        loadRelated(r.data);
+      }).catch(function(e) {
+        console.error('loadProduct:', e);
+        document.getElementById('product-skeleton').style.display = 'none';
+        document.getElementById('product-error').style.display = 'block';
+      });
+  }
+
+  document.addEventListener('DOMContentLoaded', function() {
+    window.DZ_setupNav && window.DZ_setupNav();
+    loadProduct();
+  });
+})();
+</script>
+</body>
+</html>

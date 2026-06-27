@@ -1,0 +1,2326 @@
+﻿<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>TechStore.dz — لوحة التحكم</title>
+<script src="/node_modules/react/umd/react.development.js"></script>
+<script src="/node_modules/react-dom/umd/react-dom.development.js"></script>
+<script src="/config.js"></script>
+<script src="/node_modules/@supabase/supabase-js/dist/umd/supabase.js"></script>
+<script src="/node_modules/@babel/standalone/babel.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#060c18;--card:#0d1929;--nav:#0a0e1a;--card2:#111e35;
+  --blue:#00aaff;--green:#00ddaa;--border:#1e2d4a;
+  --text:#e8edf5;--muted:#8899bb;--red:#ff4444;--orange:#ff9900;
+  --purple:#aa55ff;--sidebar-w:240px;
+  --ease-out:cubic-bezier(0.23,1,0.32,1);
+  --ease-std:cubic-bezier(0.2,0,0,1);
+  --dur-fast:150ms;--dur-enter:250ms;
+}
+:root[data-theme='light']{
+  --bg:#f0f4f8;--card:#ffffff;--nav:#ffffff;--card2:#f5f8fc;
+  --border:#d1dce8;--text:#1a2536;--muted:#6b7fa3;
+}
+body{background:var(--bg);color:var(--text);font-family:'Segoe UI',Tahoma,Arial,sans-serif;min-height:100vh;overflow-x:hidden;-webkit-font-smoothing:antialiased}
+:lang(ar){letter-spacing:0!important}
+[dir='ltr'] table th,[dir='ltr'] table td{text-align:left!important}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:var(--nav)}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+input,select,textarea,button{font-family:inherit}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+.page-enter{animation:fadeIn var(--dur-enter) var(--ease-out)}
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}
+}
+</style>
+</head>
+<body>
+<div id="root"><div id="_loading" style="color:#8899bb;padding:48px;font-size:15px;text-align:center">⏳ جاري تحميل لوحة التحكم...</div></div>
+<script>
+// catch any JS error BEFORE React mounts and show it visually
+window.addEventListener('error',function(e){
+  var r=document.getElementById('root');
+  if(r&&r.querySelector('#_loading'))
+    r.innerHTML='<div style="color:#ff4444;background:#1a0505;border:1px solid #ff444440;border-radius:10px;padding:24px;margin:24px;font-family:monospace;font-size:13px;white-space:pre-wrap"><b>خطأ JavaScript</b>\n'+e.message+'\nالسطر: '+e.lineno+'\nالملف: '+(e.filename||'script')+'</div>';
+});
+// if Babel fails to compile (no error event), show fallback after 12 seconds
+setTimeout(function(){
+  var r=document.getElementById('root');
+  if(r&&r.querySelector('#_loading'))
+    r.innerHTML='<div style="color:#ff9900;background:#1a1200;border:1px solid #ff990040;border-radius:10px;padding:24px;margin:24px;font-family:monospace;font-size:13px">فشل تحميل لوحة التحكم — تأكد من تشغيل الخادم وافتح وحدة التحكم (F12) لمعرفة الخطأ.</div>';
+},12000);
+</script>
+<script type="text/babel">
+const {useState,useEffect,useRef,useMemo,useCallback}=React;
+const _sbOk=()=>window.SUPABASE_URL&&!window.SUPABASE_URL.includes('YOUR_PROJECT');
+let sb=null;
+try{if(_sbOk())sb=supabase.createClient(window.SUPABASE_URL,window.SUPABASE_ANON_KEY);}catch(e){console.error('Supabase init:',e);}
+const mapProduct=(p)=>({...p,sold:p.sold||0,stock:p.stock??p.in_stock});
+const _getDelIds=()=>{try{return JSON.parse(localStorage.getItem('dz_del_orders')||'[]');}catch(e){return[];}};
+const _addDelId=(id)=>{if(id==null)return;const a=_getDelIds();if(!a.includes(id)){a.push(id);localStorage.setItem('dz_del_orders',JSON.stringify(a));}};
+
+// Resize + compress image: uses createObjectURL (avoids huge base64 in memory)
+const resizeImage=(file,maxW=600,quality=0.80)=>new Promise((resolve,reject)=>{
+  if(!file||!file.type.startsWith('image/')){return reject(new Error('not an image'));}
+  const blobUrl=URL.createObjectURL(file);
+  const img=new Image();
+  img.onerror=()=>{ URL.revokeObjectURL(blobUrl); reject(new Error('image load failed')); };
+  img.onload=()=>{
+    URL.revokeObjectURL(blobUrl);
+    // defer canvas work off the event microtask to avoid UI freeze
+    setTimeout(()=>{
+      try{
+        const ratio=Math.min(1,maxW/Math.max(img.naturalWidth,1));
+        const w=Math.round(img.naturalWidth*ratio)||1;
+        const h=Math.round(img.naturalHeight*ratio)||1;
+        const c=document.createElement('canvas');
+        c.width=w; c.height=h;
+        const ctx=c.getContext('2d');
+        if(!ctx){return reject(new Error('canvas ctx unavailable'));}
+        ctx.drawImage(img,0,0,w,h);
+        resolve(c.toDataURL('image/jpeg',quality));
+      }catch(err){reject(err);}
+    },0);
+  };
+  img.src=blobUrl;
+});
+
+// Renders product image: real photo if base64/URL, emoji otherwise
+const ProdImg=({src,size=36,radius=6})=>{
+  if(src&&(src.startsWith('data:')||src.startsWith('http')||src.startsWith('/')))
+    return <img src={src} style={{width:size,height:size,objectFit:'cover',borderRadius:radius,border:'1px solid var(--border)',flexShrink:0}} onError={e=>e.target.style.display='none'}/>;
+  return <span style={{fontSize:Math.round(size*.7),flexShrink:0}}>{src||'📦'}</span>;
+};
+
+// REST API helpers — bypass SDK for reads to avoid any auth/init issues
+const sbFetch=async(table,params='')=>{
+  const url=window.SUPABASE_URL;
+  const key=window.SUPABASE_ANON_KEY;
+  if(!url||url.includes('YOUR_PROJECT'))return null;
+  const res=await fetch(`${url}/rest/v1/${table}?${params}`,{
+    headers:{'apikey':key,'Authorization':'Bearer '+key,'Accept':'application/json'}
+  });
+  if(!res.ok)return null;
+  return res.json();
+};
+
+// ══════════════════════════════════════════════
+// SVG ICONS
+// ══════════════════════════════════════════════
+const Ico=({d,size=20,vb="0 0 24 24"})=>(
+  <svg width={size} height={size} viewBox={vb} fill="none" stroke="currentColor"
+    strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{flexShrink:0}}>
+    {d}
+  </svg>
+);
+const IcoGrid=({size=20})=><Ico size={size} d={<><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></>}/>;
+const IcoPackage=({size=20})=><Ico size={size} d={<><line x1="16.5" y1="9.4" x2="7.5" y2="4.21"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></>}/>;
+const IcoMonitor=({size=20})=><Ico size={size} d={<><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></>}/>;
+const IcoArchive=({size=20})=><Ico size={size} d={<><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></>}/>;
+const IcoTrendUp=({size=20})=><Ico size={size} d={<><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></>}/>;
+const IcoUsers=({size=20})=><Ico size={size} d={<><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></>}/>;
+const IcoSettings=({size=20})=><Ico size={size} d={<><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></>}/>;
+const IcoBag=({size=20})=><Ico size={size} d={<><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></>}/>;
+const IcoBell=({size=20})=><Ico size={size} d={<><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></>}/>;
+const IcoUser=({size=20})=><Ico size={size} d={<><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></>}/>;
+const IcoCash=({size=20})=><Ico size={size} d={<><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></>}/>;
+const IcoBarChart=({size=20})=><Ico size={size} d={<><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></>}/>;
+const IcoAlert=({size=20})=><Ico size={size} d={<><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></>}/>;
+const IcoChevron=({size=20,left})=><Ico size={size} d={left?<polyline points="15 18 9 12 15 6"/>:<polyline points="9 18 15 12 9 6"/>}/>;
+
+const NAV_ICONS={
+  overview:<IcoGrid/>,
+  orders:<IcoPackage/>,
+  products:<IcoMonitor/>,
+  inventory:<IcoArchive/>,
+  analytics:<IcoTrendUp/>,
+  customers:<IcoUsers/>,
+  settings:<IcoSettings/>,
+};
+
+// ══════════════════════════════════════════════
+// MOCK DATA
+// ══════════════════════════════════════════════
+const PRODUCTS_DATA=[
+  {id:1,name:"Gaming Beast Pro",cat:"تجميعات جاهزة",price:285000,stock:12,sold:48,img:"🖥️",brand:"TechStore"},
+  {id:2,name:"Intel Core i9-13900K",cat:"معالجات",price:75000,stock:8,sold:67,img:"💻",brand:"Intel"},
+  {id:3,name:"NVIDIA RTX 4090",cat:"كروت شاشة",price:198000,stock:3,sold:22,img:"🎮",brand:"NVIDIA"},
+  {id:4,name:"Corsair Vengeance DDR5 32GB",cat:"ذاكرة RAM",price:12500,stock:45,sold:134,img:"📊",brand:"Corsair"},
+  {id:5,name:"Samsung 990 Pro 2TB",cat:"تخزين",price:16500,stock:28,sold:98,img:"💾",brand:"Samsung"},
+  {id:6,name:"Lian Li O11 Dynamic EVO",cat:"أبراج",price:22000,stock:15,sold:41,img:"🗃️",brand:"Lian Li"},
+  {id:7,name:"ASUS ROG Swift PG279QM",cat:"شاشات",price:48000,stock:6,sold:29,img:"🖥️",brand:"ASUS"},
+  {id:8,name:"NZXT Kraken X73 RGB",cat:"تبريد",price:18500,stock:19,sold:56,img:"💧",brand:"NZXT"},
+  {id:9,name:"Corsair RM1000x Gold",cat:"طاقة",price:21000,stock:22,sold:63,img:"⚡",brand:"Corsair"},
+  {id:10,name:"ASUS ROG Maximus Z790",cat:"لوحات أم",price:52000,stock:7,sold:31,img:"🔧",brand:"ASUS"},
+  {id:11,name:"AMD Ryzen 9 7950X",cat:"معالجات",price:82000,stock:5,sold:18,img:"🔴",brand:"AMD"},
+  {id:12,name:"Office Elite Pro",cat:"تجميعات جاهزة",price:145000,stock:9,sold:37,img:"💼",brand:"TechStore"},
+  {id:13,name:"Kingston Fury Beast DDR4 16GB",cat:"ذاكرة RAM",price:5800,stock:60,sold:210,img:"⚡",brand:"Kingston"},
+  {id:14,name:"NVIDIA RTX 4070 Ti",cat:"كروت شاشة",price:98000,stock:4,sold:35,img:"🟢",brand:"NVIDIA"},
+  {id:15,name:"Noctua NH-D15",cat:"تبريد",price:8500,stock:33,sold:89,img:"🌀",brand:"Noctua"},
+];
+
+const WILAYAS=["الجزائر","وهران","قسنطينة","عنابة","سطيف","باتنة","تيزي وزو","بجاية","بلعباس","المدية"];
+const STATUSES=["مكتمل","معلق","مُشحون","ملغى"];
+const STATUS_COLORS={مكتمل:"var(--green)",معلق:"var(--orange)",مُشحون:"var(--blue)",ملغى:"var(--red)"};
+const PAYMENTS=["COD","CIB/Edahabia","تحويل بنكي"];
+
+const seed=(n)=>{let x=Math.sin(n+1)*10000;return x-Math.floor(x)};
+const ORDERS=Array.from({length:60},(_,i)=>{
+  const r=seed(i);
+  const prod=PRODUCTS_DATA[Math.floor(r*PRODUCTS_DATA.length)];
+  const day=Math.floor(seed(i+100)*28)+1;
+  const month=Math.floor(seed(i+200)*6)+1;
+  const qty=Math.floor(seed(i+300)*3)+1;
+  return{
+    id:`TS-${1000+i}`,
+    product:prod.name,
+    img:prod.img,
+    customer:["أحمد بن علي","فاطمة حمدي","يوسف خالد","أمينة بوعلام","رضا بلقاسم","نور الدين"][Math.floor(seed(i+400)*6)],
+    wilaya:WILAYAS[Math.floor(seed(i+500)*WILAYAS.length)],
+    amount:prod.price*qty,
+    qty,
+    status:STATUSES[Math.floor(seed(i+600)*4)],
+    payment:PAYMENTS[Math.floor(seed(i+700)*3)],
+    date:`2026-0${month}-${day<10?'0'+day:day}`,
+    cat:prod.cat,
+  };
+});
+
+// Dashboard i18n
+const DT={
+  ar:{
+    nav:{overview:'نظرة عامة',orders:'الطلبات',products:'المنتجات',inventory:'المخزون',analytics:'الإحصائيات',customers:'الزبائن',settings:'الإعدادات'},
+    pages:{overview:'نظرة عامة',orders:'إدارة الطلبات',products:'إدارة المنتجات',inventory:'إدارة المخزون',analytics:'الإحصائيات والتحليلات',customers:'إدارة الزبائن',settings:'الإعدادات'},
+    collapse:'طيّ القائمة',store:'زيارة المتجر',refresh:'تحديث',
+    noNotif:'لا توجد إشعارات جديدة',notifTitle:'الإشعارات',
+    detail:'تفاصيل',close:'إغلاق',addProduct:'+ إضافة منتج',save:'حفظ',cancel:'إلغاء',
+    orderDetail:'تفاصيل الطلب',customerDetail:'معلومات الزبون',
+    edit:'تعديل',delete:'حذف',saving:'جاري الحفظ…',prev:'السابق',next:'التالي',
+    statuses:{'معلق':'معلق','مكتمل':'مكتمل','ملغى':'ملغى','مُشحون':'مُشحون'},
+    months:["يناير","فبراير","مارس","أبريل","ماي","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"],
+    cats:["تجميعات جاهزة","معالجات","كروت شاشة","لوحات أم","ذاكرة RAM","تخزين","طاقة","أبراج","شاشات","تبريد"],
+    overview:{
+      revenue:'إجمالي الإيرادات',completedOnly:'الطلبات المكتملة فقط',
+      totalOrders:'إجمالي الطلبات',pendingLabel:'طلب معلق',
+      avgOrder:'متوسط قيمة الطلب',perOrder:'لكل طلب مكتمل',
+      belowThreshold:'منتجات تحت الحد',needsRestock:'تحتاج إعادة تموين',
+      monthlyRevenue:'الإيرادات الشهرية',recentOrders:'الطلبات الأخيرة',
+      topProducts:'المنتجات الأكثر مبيعاً',salesByCat:'المبيعات حسب الفئة',payMethods:'طرق الدفع',
+      recHeaders:['المرجع','الزبون','المبلغ','التاريخ','الحالة'],
+      bestMonth:'أعلى شهر',bestRev:'أعلى إيراد',yearTotal:'إجمالي السنة',growth:'معدل النمو',
+    },
+    orders:{
+      searchPH:'🔍 بحث برقم الطلب أو الزبون...',allStatus:'جميع الحالات',countSuf:'طلب',
+      headers:['رقم الطلب','المنتج','الزبون','الولاية','المبلغ','الدفع','الحالة','التاريخ',''],
+      pageOf:(p,t)=>`صفحة ${p} من ${t}`,details:'تفاصيل',
+    },
+    products:{
+      searchPH:'🔍 بحث في المنتجات...',addBtn:'+ إضافة منتج',editTitle:'تعديل المنتج',
+      headers:['المنتج','الفئة','الماركة','السعر','المخزون','المبيعات','الإجراءات'],
+      saveEdits:'حفظ التعديلات',
+      pName:'اسم المنتج',brand:'الماركة',price:'السعر الأصلي (دج)',stock:'المخزون',cat:'الفئة',
+      oldPrice:'سعر التخفيض (دج) — اختياري',discount:'التخفيض',
+      photos:n=>`صور المنتج (${n})`,addPhoto:'إضافة',
+    },
+    inventory:{
+      outStock:'نفاذ المخزون',lowStock:'مخزون منخفض (<8)',sufficient:'مخزون كافٍ',
+      warning:n=>`تنبيه: ${n} منتجات تحتاج إعادة تموين`,
+      warnNames:names=>`تنبيه: ${names} — تحتاج إعادة تموين`,
+      headers:['المنتج','الفئة','المخزون الحالي','مستوى المخزون','ضبط المخزون'],
+      unit:'وحدة',
+    },
+    analytics:{
+      revTitle:'📈 منحنى الإيرادات — 2026',revSub:'إجمالي الإيرادات الشهرية بالدينار الجزائري',
+      bestMonth:'أعلى شهر',bestRev:'أعلى إيراد',yearTotal:'إجمالي السنة',growth:'معدل النمو',
+      byWilaya:'🗺️ الطلبات حسب الولاية',ordersStatus:'📊 حالة الطلبات',
+      payMethods:'💳 وسائل الدفع',monthlyOrders:'📅 عدد الطلبات الشهرية',
+    },
+    customers:{
+      totalC:'إجمالي الزبائن',uniqueC:'زبون فريد',
+      avgOrd:'متوسط الطلبات',perC:'طلب لكل زبون',topSpend:'أعلى إنفاق',
+      headers:['الزبون','الهاتف','الولاية','عدد الطلبات','إجمالي الإنفاق','آخر طلب','الرتبة',''],
+      details:'تفاصيل',editTitle:'تعديل بيانات الزبون',view:'عرض',editBtn:'تعديل',
+      infoLabels:['الاسم','الهاتف','الولاية','عدد الطلبات','إجمالي الإنفاق','آخر طلب'],
+      editFields:[['الاسم الكامل','name'],['رقم الهاتف','phone'],['الولاية','wilaya']],
+      recentOrders:'آخر الطلبات',saveEdits:'حفظ التعديلات',
+    },
+    settings:{
+      storeInfo:'🏪 معلومات المتجر',delivery:'🚚 إعدادات التوصيل',
+      fLabels:{name:'اسم المتجر',email:'البريد الإلكتروني',phone:'رقم الهاتف',address:'العنوان',currency:'عملة المتجر',minOrder:'الحد الأدنى للطلب',minFreeShip:'الحد الأدنى للشحن المجاني (دج)'},
+      shippingPolicy:'سياسة الشحن',
+      shippingOpts:[['مجاني','مجاني دائماً'],['مدفوع','مدفوع'],['حسب الولاية','حسب الولاية']],
+      saveBtn:'💾 حفظ الإعدادات',savedBtn:'✓ تم الحفظ بنجاح',
+    },
+    login:{
+      title:'تسجيل الدخول',sub:'أدخل بياناتك للوصول إلى لوحة التحكم',
+      user:'اسم المستخدم',pwd:'كلمة المرور',btn:'دخول',loading:'جاري التحقق...',
+      errWrong:'اسم المستخدم أو كلمة المرور غير صحيحة',errNet:'خطأ في الاتصال',
+      setup:'إنشاء حساب المدير الأول',setupSub:'لا توجد حسابات. أنشئ حساب المدير.',
+      createAdmin:'إنشاء الحساب',
+      sqlTitle:'إعداد قاعدة البيانات مطلوب',
+      sqlSub:'شغّل هذا الكود في Supabase ← SQL Editor:',
+    },
+    users:{
+      title:'إدارة المستخدمين',add:'+ إضافة مستخدم',
+      username:'اسم المستخدم',pwd:'كلمة المرور',roleLabel:'الصلاحية',
+      roleNames:{cashier:'كاشير / زميل',admin:'مدير'},
+      save:'حفظ',cancel:'إلغاء',delete:'حذف',
+      confirmDel:'هل تريد حذف هذا المستخدم؟',
+      cols:['اسم المستخدم','الصلاحية','تاريخ الإنشاء',''],
+      you:'(أنت)',logout:'تسجيل الخروج',
+    },
+  },
+  fr:{
+    nav:{overview:'Vue générale',orders:'Commandes',products:'Produits',inventory:'Inventaire',analytics:'Statistiques',customers:'Clients',settings:'Paramètres'},
+    pages:{overview:'Vue générale',orders:'Gestion des commandes',products:'Gestion des produits',inventory:'Gestion du stock',analytics:'Statistiques & Analyses',customers:'Gestion des clients',settings:'Paramètres'},
+    collapse:'Réduire',store:'Voir la boutique',refresh:'Actualiser',
+    noNotif:'Aucune nouvelle notification',notifTitle:'Notifications',
+    detail:'Détails',close:'Fermer',addProduct:'+ Ajouter',save:'Enregistrer',cancel:'Annuler',
+    orderDetail:'Détails de la commande',customerDetail:'Infos client',
+    edit:'Modifier',delete:'Supprimer',saving:'Enregistrement...',prev:'Précédent',next:'Suivant',
+    statuses:{'معلق':'En attente','مكتمل':'Terminé','ملغى':'Annulé','مُشحون':'Expédié'},
+    months:["Jan","Fév","Mar","Avr","Mai","Juin","Juil","Aoû","Sep","Oct","Nov","Déc"],
+    cats:["Kits complets","Processeurs","Cartes graphiques","Cartes mères","RAM","Stockage","Alimentation","Boîtiers","Écrans","Refroidissement"],
+    overview:{
+      revenue:'Revenu total',completedOnly:'Commandes terminées uniquement',
+      totalOrders:'Total commandes',pendingLabel:'en attente',
+      avgOrder:'Valeur moy. commande',perOrder:'par commande terminée',
+      belowThreshold:'Produits sous le seuil',needsRestock:'Réapprovisionnement requis',
+      monthlyRevenue:'Revenus mensuels',recentOrders:'Commandes récentes',
+      topProducts:'Produits les plus vendus',salesByCat:'Ventes par catégorie',payMethods:'Moyens de paiement',
+      recHeaders:['Réf.','Client','Montant','Date','Statut'],
+      bestMonth:'Meilleur mois',bestRev:'Meilleur revenu',yearTotal:'Total annuel',growth:'Croissance',
+    },
+    orders:{
+      searchPH:'🔍 Rechercher une commande...',allStatus:'Tous les statuts',countSuf:'commande(s)',
+      headers:['N° commande','Produit','Client','Wilaya','Montant','Paiement','Statut','Date',''],
+      pageOf:(p,t)=>`Page ${p} / ${t}`,details:'Détails',
+    },
+    products:{
+      searchPH:'🔍 Rechercher un produit...',addBtn:'+ Ajouter',editTitle:'Modifier le produit',
+      headers:['Produit','Catégorie','Marque','Prix','Stock','Ventes','Actions'],
+      saveEdits:'Enregistrer les modifications',
+      pName:'Nom du produit',brand:'Marque',price:'Prix original (DA)',stock:'Stock',cat:'Catégorie',
+      oldPrice:'Prix remisé (DA) — optionnel',discount:'Remise',
+      photos:n=>`Photos du produit (${n})`,addPhoto:'Ajouter',
+    },
+    inventory:{
+      outStock:'Rupture de stock',lowStock:'Stock faible (<8)',sufficient:'Stock suffisant',
+      warning:n=>`Alerte: ${n} produits à réapprovisionner`,
+      warnNames:names=>`Alerte: ${names} — à réapprovisionner`,
+      headers:['Produit','Catégorie','Stock actuel','Niveau de stock','Ajuster le stock'],
+      unit:'unité',
+    },
+    analytics:{
+      revTitle:'📈 Courbe des revenus — 2026',revSub:'Revenus mensuels totaux en DA',
+      bestMonth:'Meilleur mois',bestRev:'Meilleur revenu',yearTotal:'Total annuel',growth:'Croissance',
+      byWilaya:'🗺️ Commandes par wilaya',ordersStatus:'📊 Statuts des commandes',
+      payMethods:'💳 Moyens de paiement',monthlyOrders:'📅 Commandes mensuelles',
+    },
+    customers:{
+      totalC:'Total clients',uniqueC:'client unique',
+      avgOrd:'Moy. commandes',perC:'commande/client',topSpend:'Meilleur acheteur',
+      headers:['Client','Téléphone','Wilaya','Commandes','Total dépensé','Dernière cmd','Rang',''],
+      details:'Détails',editTitle:'Modifier les infos client',view:'Vue',editBtn:'Modifier',
+      infoLabels:['Nom','Téléphone','Wilaya','Commandes','Total dépensé','Dernière cmd'],
+      editFields:[['Nom complet','name'],['Téléphone','phone'],['Wilaya','wilaya']],
+      recentOrders:'Dernières commandes',saveEdits:'Enregistrer',
+    },
+    settings:{
+      storeInfo:"🏪 Informations de la boutique",delivery:'🚚 Paramètres de livraison',
+      fLabels:{name:'Nom de la boutique',email:'E-mail',phone:'Téléphone',address:'Adresse',currency:'Devise',minOrder:'Commande minimale',minFreeShip:'Seuil livraison gratuite (DA)'},
+      shippingPolicy:"Politique d'expédition",
+      shippingOpts:[['مجاني','Toujours gratuit'],['مدفوع','Payant'],['حسب الولاية','Selon la wilaya']],
+      saveBtn:'💾 Enregistrer',savedBtn:'✓ Enregistré',
+    },
+    login:{
+      title:'Connexion',sub:'Entrez vos identifiants pour accéder au tableau de bord',
+      user:"Nom d'utilisateur",pwd:'Mot de passe',btn:'Se connecter',loading:'Vérification...',
+      errWrong:'Identifiants incorrects',errNet:'Erreur de connexion',
+      setup:'Créer le compte administrateur',setupSub:'Aucun compte. Créez le premier admin.',
+      createAdmin:'Créer le compte',
+      sqlTitle:'Configuration de la base de données requise',
+      sqlSub:'Exécutez ce code dans Supabase ← SQL Editor:',
+    },
+    users:{
+      title:'Gestion des utilisateurs',add:'+ Ajouter un utilisateur',
+      username:"Nom d'utilisateur",pwd:'Mot de passe',roleLabel:'Rôle',
+      roleNames:{cashier:'Caissier / Collègue',admin:'Administrateur'},
+      save:'Enregistrer',cancel:'Annuler',delete:'Supprimer',
+      confirmDel:'Supprimer cet utilisateur ?',
+      cols:['Utilisateur','Rôle','Date création',''],
+      you:'(vous)',logout:'Déconnexion',
+    },
+  }
+};
+
+const CAT_MAP_FR={'تجميعات جاهزة':'Kits complets','معالجات':'Processeurs','كروت شاشة':'Cartes graphiques','لوحات أم':'Cartes mères','ذاكرة RAM':'RAM','تخزين':'Stockage','طاقة':'Alimentation','أبراج':'Boîtiers','شاشات':'Écrans','تبريد':'Refroidissement'};
+
+const WILAYA_FR_MAP={'الجزائر':'Alger','وهران':'Oran','قسنطينة':'Constantine','عنابة':'Annaba','سطيف':'Sétif','باتنة':'Batna','تيزي وزو':'Tizi Ouzou','بجاية':'Béjaïa','بلعباس':'Sidi Bel Abbès','المدية':'Médéa','أدرار':'Adrar','الشلف':'Chlef','الأغواط':'Laghouat','أم البواقي':'Oum El Bouaghi','بسكرة':'Biskra','بشار':'Béchar','البليدة':'Blida','البويرة':'Bouira','تمنراست':'Tamanrasset','تبسة':'Tébessa','تلمسان':'Tlemcen','تيارت':'Tiaret','الجلفة':'Djelfa','جيجل':'Jijel','سعيدة':'Saïda','سكيكدة':'Skikda','سيدي بلعباس':'Sidi Bel Abbès','قالمة':'Guelma','المسيلة':"M'Sila",'معسكر':'Mascara','ورقلة':'Ouargla','البيض':'El Bayadh','إليزي':'Illizi','برج بوعريريج':'Bordj Bou Arréridj','بومرداس':'Boumerdès','الطارف':'El Tarf','تندوف':'Tindouf','تيسمسيلت':'Tissemsilt','الوادي':'El Oued','خنشلة':'Khenchela','سوق أهراس':'Souk Ahras','تيبازة':'Tipaza','ميلة':'Mila','عين الدفلى':'Aïn Defla','النعامة':'Naâma','عين تموشنت':'Aïn Témouchent','غرداية':'Ghardaïa','غليزان':'Relizane','المغير':"El M'Ghair",'المنيعة':'El Meniaa','أولاد جلال':'Ouled Djellal','برج باجي مختار':'Bordj Baddji Mokhtar','بني عباس':'Béni Abbès','تيميمون':'Timimoun','تقرت':'Touggourt','جانت':'Djanet','عين صالح':'Aïn Salah'};
+const trW=(w,lang)=>lang==='fr'?(WILAYA_FR_MAP[w]||w):w;
+const fmtD2=(d,lang)=>{if(!d||d==='—')return d||'—';try{return new Date(d).toLocaleDateString(lang==='fr'?'fr-DZ':'ar-DZ',{year:'numeric',month:'long',day:'numeric'});}catch{return d;}};
+const trCat=(cat,dt)=>{const i=DT.ar.cats.indexOf(cat);return(i>=0&&dt&&dt.cats&&dt.cats[i])?dt.cats[i]:cat;};
+
+const MONTHLY_REVENUE=[4200000,5100000,4800000,6300000,5900000,7200000,6800000,8100000,7600000,9200000,8800000,10500000];
+const MONTHLY_ORDERS=[18,22,20,28,25,31,29,36,33,41,38,47];
+const MONTHS=["يناير","فبراير","مارس","أبريل","ماي","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"];
+
+const CAT_SALES=PRODUCTS_DATA.reduce((acc,p)=>{
+  acc[p.cat]=(acc[p.cat]||0)+p.sold;return acc;
+},{});
+
+const fmt=(n)=>{if(n>=1000000)return(n/1000000).toFixed(1)+'م';if(n>=1000)return(n/1000).toFixed(0)+'ك';return n};
+const fmtDA=(n,lang='ar')=>(n||0).toLocaleString(lang==='fr'?'fr-DZ':'ar-DZ')+(lang==='fr'?' DA':' دج');
+
+// Maps real Supabase order → dashboard format (also accepts mock orders as-is)
+const mapOrder=(o)=>{
+  if(o.order_ref!==undefined){
+    const first=o.items?.[0];
+    return{
+      _real_id:o.id,
+      id:o.order_ref,
+      product:first?.name||'منتج',
+      img:'📦',
+      customer:o.customer_name,
+      phone:o.customer_phone||'',
+      address:o.address||'',
+      wilaya:o.wilaya,
+      amount:o.total,
+      qty:o.items?.reduce((s,i)=>s+(i.qty||1),0)||1,
+      status:o.status,
+      payment:o.payment_method,
+      date:o.created_at?.slice(0,10)||'',
+      items:o.items||[],
+      cat:'',
+    };
+  }
+  return o;
+};
+
+// Maps Supabase product → dashboard format, computes sold from real orders
+const mapDashProduct=(p,sbOrders=[])=>({
+  id:p.id,
+  name:p.name,
+  cat:p.category_ar||'',
+  price:p.price,
+  oldPrice:p.old_price||null,
+  stock:p.stock??20,
+  sold:sbOrders.reduce((t,o)=>
+    t+(o.items||[]).filter(i=>i.id===p.id).reduce((s,i)=>s+(i.qty||1),0),0),
+  img:p.img||'📦',
+  brand:p.brand||'',
+  in_stock:p.in_stock,
+  specs_ar:Array.isArray(p.specs_ar)?p.specs_ar:[],
+  specs_fr:Array.isArray(p.specs_fr)?p.specs_fr:[],
+  rating:p.rating||4.5,
+  reviews:p.reviews||0,
+});
+
+// ══════════════════════════════════════════════
+// SVG CHARTS
+// ══════════════════════════════════════════════
+function LineChart({data,labels,color='var(--blue)',h=160}){
+  const max=Math.max(...data);
+  const min=Math.min(...data);
+  const W=600,H=h,pad=30;
+  const pts=data.map((v,i)=>{
+    const x=pad+(i/(data.length-1))*(W-pad*2);
+    const y=H-pad-((v-min)/(max-min||1))*(H-pad*2);
+    return[x,y];
+  });
+  const line=pts.map((p,i)=>(i===0?`M${p[0]},${p[1]}`:`L${p[0]},${p[1]}`)).join(' ');
+  const area=line+` L${pts[pts.length-1][0]},${H-pad} L${pts[0][0]},${H-pad} Z`;
+  return(
+    <svg viewBox={`0 0 ${W} ${H}`} style={{width:'100%',height:h}}>
+      <defs>
+        <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={color} stopOpacity="0.25"/>
+          <stop offset="100%" stopColor={color} stopOpacity="0"/>
+        </linearGradient>
+      </defs>
+      {[0,.25,.5,.75,1].map((t,i)=>(
+        <line key={i} x1={pad} y1={pad+(H-pad*2)*t} x2={W-pad} y2={pad+(H-pad*2)*t}
+          stroke="var(--border)" strokeWidth="1" strokeDasharray="4,4"/>
+      ))}
+      <path d={area} fill="url(#areaGrad)"/>
+      <path d={line} fill="none" stroke={color} strokeWidth="2.5" strokeLinejoin="round"/>
+      {pts.map((p,i)=>(
+        <circle key={i} cx={p[0]} cy={p[1]} r="4" fill={color} stroke="var(--card)" strokeWidth="2"/>
+      ))}
+      {labels.filter((_,i)=>i%2===0).map((_,idx)=>{
+        const i=idx*2;
+        return<text key={i} x={pts[i][0]} y={H-8} textAnchor="middle" fill="var(--muted)" fontSize="11">{labels[i]}</text>
+      })}
+    </svg>
+  );
+}
+
+function BarChart({data,labels,color='var(--blue)',h=140}){
+  const max=Math.max(...data);
+  const W=600,H=h,pad=20,barW=Math.floor((W-pad*2)/data.length*0.55);
+  return(
+    <svg viewBox={`0 0 ${W} ${H}`} style={{width:'100%',height:h}}>
+      {data.map((v,i)=>{
+        const bh=Math.round(((v/max))*(H-pad*2));
+        const x=pad+(i/(data.length-1))*(W-pad*2)-barW/2;
+        return(
+          <g key={i}>
+            <rect x={x} y={H-pad-bh} width={barW} height={bh} rx="3" fill={color} opacity="0.85"/>
+            <text x={x+barW/2} y={H-4} textAnchor="middle" fill="var(--muted)" fontSize="10">{labels[i]}</text>
+          </g>
+        );
+      })}
+    </svg>
+  );
+}
+
+function DonutChart({data,colors,labels}){
+  const total=data.reduce((s,v)=>s+v,0);
+  let offset=0;
+  const R=60,CX=80,CY=80,r=36;
+  const slices=data.map((v,i)=>{
+    const pct=v/total;
+    const startAngle=offset*2*Math.PI-Math.PI/2;
+    const endAngle=(offset+pct)*2*Math.PI-Math.PI/2;
+    offset+=pct;
+    const x1=CX+R*Math.cos(startAngle),y1=CY+R*Math.sin(startAngle);
+    const x2=CX+R*Math.cos(endAngle),y2=CY+R*Math.sin(endAngle);
+    const xi=CX+r*Math.cos(startAngle),yi=CY+r*Math.sin(startAngle);
+    const xj=CX+r*Math.cos(endAngle),yj=CY+r*Math.sin(endAngle);
+    const large=pct>.5?1:0;
+    return<path key={i} d={`M${xi},${yi} A${r},${r} 0 ${large},1 ${xj},${yj} L${x2},${y2} A${R},${R} 0 ${large},0 ${x1},${y1} Z`} fill={colors[i]}/>;
+  });
+  return(
+    <div style={{display:'flex',alignItems:'center',gap:20}}>
+      <svg viewBox="0 0 160 160" style={{width:120,height:120,flexShrink:0}}>
+        {slices}
+        <circle cx={CX} cy={CY} r="20" fill="var(--card)"/>
+      </svg>
+      <div style={{flex:1}}>
+        {labels.map((l,i)=>(
+          <div key={l} style={{display:'flex',alignItems:'center',gap:8,marginBottom:6}}>
+            <span style={{width:10,height:10,borderRadius:2,background:colors[i],flexShrink:0}}/>
+            <span style={{fontSize:12,color:'var(--muted)',flex:1}}>{l}</span>
+            <span style={{fontSize:12,fontWeight:700,color:'var(--text)'}}>{Math.round(data[i]/total*100)}%</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════
+// KPI CARD
+// ══════════════════════════════════════════════
+function KpiCard({icon,title,value,sub,color,delta,onClick}){
+  return(
+    <div onClick={onClick} style={{background:'var(--card)',border:`1px solid var(--border)`,borderRadius:14,padding:22,cursor:onClick?'pointer':'default',transition:onClick?'transform .15s,box-shadow .15s':undefined}}
+      onMouseEnter={onClick?e=>{e.currentTarget.style.transform='translateY(-2px)';e.currentTarget.style.boxShadow=`0 6px 20px ${color}22`;}:undefined}
+      onMouseLeave={onClick?e=>{e.currentTarget.style.transform='';e.currentTarget.style.boxShadow='';}:undefined}>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:12}}>
+        <div style={{background:`${color}18`,border:`1px solid ${color}28`,borderRadius:10,width:42,height:42,display:'flex',alignItems:'center',justifyContent:'center',color}}>
+          {icon}
+        </div>
+        {delta!==undefined&&(
+          <span style={{fontSize:12,fontWeight:700,color:delta>=0?'var(--green)':'var(--red)',background:delta>=0?'rgba(0,221,170,.12)':'rgba(255,68,68,.12)',padding:'3px 8px',borderRadius:20}}>
+            {delta>=0?'↑':'↓'} {Math.abs(delta)}%
+          </span>
+        )}
+      </div>
+      <div style={{fontSize:26,fontWeight:900,color,marginBottom:4,letterSpacing:-.5}}>{value}</div>
+      <div style={{fontSize:13,fontWeight:600,color:'var(--text)',marginBottom:2}}>{title}</div>
+      <div style={{fontSize:12,color:'var(--muted)'}}>{sub}</div>
+    </div>
+  );
+}
+
+
+// ══════════════════════════════════════════════
+// AUTH UTILITIES
+// ══════════════════════════════════════════════
+const DASH_SESSION_KEY='ds_session';
+const DASH_USERS_SQL=`CREATE TABLE IF NOT EXISTS dashboard_users (
+  id SERIAL PRIMARY KEY,
+  username TEXT UNIQUE NOT NULL,
+  password_hash TEXT NOT NULL,
+  role TEXT NOT NULL DEFAULT 'cashier',
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE dashboard_users DISABLE ROW LEVEL SECURITY;`;
+
+async function hashPwd(p){
+  const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(p));
+  return Array.from(new Uint8Array(b)).map(x=>x.toString(16).padStart(2,'0')).join('');
+}
+
+async function sbUsers(method,body,filter=''){
+  const url=window.SUPABASE_URL,key=window.SUPABASE_ANON_KEY;
+  const opts={method,headers:{'apikey':key,'Authorization':'Bearer '+key,'Accept':'application/json'}};
+  if(body){opts.headers['Content-Type']='application/json';opts.headers['Prefer']='return=representation';opts.body=JSON.stringify(body);}
+  return fetch(`${url}/rest/v1/dashboard_users${filter}`,opts);
+}
+
+// ══════════════════════════════════════════════
+// LOGIN PAGE
+// ══════════════════════════════════════════════
+function LoginPage({onLogin,dashLang}){
+  const dt=DT[dashLang||'ar'];
+  const dl=dt.login||{};
+  const [mode,setMode]=useState('checking'); // checking|nosql|setup|login
+  const [uname,setUname]=useState('');
+  const [pwd,setPwd]=useState('');
+  const [showPwd,setShowPwd]=useState(false);
+  const [loading,setLoading]=useState(false);
+  const [err,setErr]=useState('');
+
+  useEffect(()=>{
+    if(!_sbOk()){setMode('nosql');return;}
+    sbUsers('GET','','?select=id&limit=1').then(async r=>{
+      if(!r.ok){const b=await r.json().catch(()=>({}));if(b?.code==='42P01'||b?.message?.includes('does not exist')){setMode('nosql');return;}setMode('login');}
+      else{const d=await r.json();setMode(d.length===0?'setup':'login');}
+    }).catch(()=>setMode('nosql'));
+  },[]);
+
+  const handleSubmit=async(e)=>{
+    e.preventDefault();
+    if(!uname.trim()||!pwd)return;
+    setLoading(true);setErr('');
+    try{
+      const hash=await hashPwd(pwd);
+      if(mode==='setup'){
+        const r=await sbUsers('POST',{username:uname.trim(),password_hash:hash,role:'admin'});
+        if(r.ok){onLogin({username:uname.trim(),role:'admin'});}
+        else{setErr(dl.errNet);}
+      } else {
+        const r=await sbUsers('GET','',`?username=eq.${encodeURIComponent(uname.trim())}&password_hash=eq.${encodeURIComponent(hash)}&select=username,role`);
+        if(r.ok){
+          const d=await r.json();
+          if(d?.length>0)onLogin({username:d[0].username,role:d[0].role});
+          else setErr(dl.errWrong);
+        } else setErr(dl.errNet);
+      }
+    }catch(e){setErr(dl.errNet);}
+    setLoading(false);
+  };
+
+  const card={background:'var(--card)',border:'1px solid var(--border)',borderRadius:18,padding:40,width:'100%',maxWidth:420,boxShadow:'0 24px 80px rgba(0,0,0,.5)'};
+  const inp={width:'100%',background:'var(--card2)',border:'1px solid var(--border)',borderRadius:10,padding:'13px 16px',color:'var(--text)',fontSize:15,outline:'none',boxSizing:'border-box',transition:'border-color .2s'};
+  const btn={width:'100%',background:'var(--blue)',color:'#fff',border:'none',borderRadius:10,padding:'14px',fontSize:16,fontWeight:700,cursor:'pointer',opacity:loading?.6:1,transition:'opacity .2s'};
+
+  return(
+    <div style={{minHeight:'100vh',background:'var(--bg)',display:'flex',alignItems:'center',justifyContent:'center',padding:20}}>
+      <div style={card}>
+        <div style={{textAlign:'center',marginBottom:32}}>
+          <div style={{width:64,height:64,borderRadius:16,background:'rgba(0,170,255,.12)',border:'1px solid rgba(0,170,255,.2)',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 16px',color:'var(--blue)'}}>
+            <IcoMonitor size={28}/>
+          </div>
+          <div style={{fontWeight:900,fontSize:22,marginBottom:6}}>TechStore.dz</div>
+          {mode==='checking'&&<div style={{color:'var(--muted)',fontSize:14}}>...</div>}
+          {mode!=='checking'&&<div style={{color:'var(--muted)',fontSize:14}}>{mode==='setup'?dl.setupSub:mode==='nosql'?dl.sqlTitle:dl.sub}</div>}
+        </div>
+
+        {mode==='nosql'&&(
+          <div>
+            <div style={{color:'var(--orange)',fontSize:13,marginBottom:12}}>{dl.sqlSub}</div>
+            <pre style={{background:'var(--card2)',border:'1px solid var(--border)',borderRadius:8,padding:14,fontSize:11,color:'var(--muted)',overflow:'auto',whiteSpace:'pre-wrap',wordBreak:'break-all',userSelect:'all'}}>{DASH_USERS_SQL}</pre>
+            <div style={{fontSize:12,color:'var(--muted)',marginTop:12,textAlign:'center'}}>ثم أعد تحميل الصفحة</div>
+          </div>
+        )}
+
+        {(mode==='login'||mode==='setup')&&(
+          <form onSubmit={handleSubmit} style={{display:'flex',flexDirection:'column',gap:14}}>
+            <div>
+              <div style={{fontSize:12,color:'var(--muted)',marginBottom:6}}>{dl.user}</div>
+              <input value={uname} onChange={e=>setUname(e.target.value)} style={inp} autoComplete="username" autoFocus
+                onFocus={e=>e.target.style.borderColor='var(--blue)'} onBlur={e=>e.target.style.borderColor='var(--border)'}/>
+            </div>
+            <div>
+              <div style={{fontSize:12,color:'var(--muted)',marginBottom:6}}>{dl.pwd}</div>
+              <div style={{position:'relative'}}>
+                <input type={showPwd?'text':'password'} value={pwd} onChange={e=>setPwd(e.target.value)} style={{...inp,paddingLeft:42}}
+                  onFocus={e=>e.target.style.borderColor='var(--blue)'} onBlur={e=>e.target.style.borderColor='var(--border)'}/>
+                <button type="button" onClick={()=>setShowPwd(v=>!v)}
+                  style={{position:'absolute',left:12,top:'50%',transform:'translateY(-50%)',background:'none',border:'none',cursor:'pointer',color:'var(--muted)',fontSize:16,padding:0,lineHeight:1}}>
+                  {showPwd?'🙈':'👁'}
+                </button>
+              </div>
+            </div>
+            {err&&<div style={{background:'rgba(255,68,68,.08)',border:'1px solid rgba(255,68,68,.25)',borderRadius:8,padding:'10px 14px',color:'var(--red)',fontSize:13,textAlign:'center'}}>{err}</div>}
+            <button type="submit" disabled={loading} style={btn}>
+              {loading?dl.loading:(mode==='setup'?dl.createAdmin:dl.btn)}
+            </button>
+          </form>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════
+// USERS SECTION (settings, admin only)
+// ══════════════════════════════════════════════
+function UsersSection({dt,authUser}){
+  const du=dt.users||{};
+  const [users,setUsers]=useState([]);
+  const [showAdd,setShowAdd]=useState(false);
+  const [nu,setNu]=useState({username:'',pwd:'',role:'cashier'});
+  const [adding,setAdding]=useState(false);
+  const [addErr,setAddErr]=useState('');
+
+  useEffect(()=>{
+    if(!_sbOk())return;
+    sbUsers('GET','','?select=id,username,role,created_at&order=created_at.asc').then(r=>r.ok?r.json():null).then(d=>{if(d)setUsers(d);});
+  },[]);
+
+  const addUser=async()=>{
+    if(!nu.username.trim()||!nu.pwd){setAddErr('يرجى ملء جميع الحقول');return;}
+    setAdding(true);setAddErr('');
+    try{
+      const hash=await hashPwd(nu.pwd);
+      const r=await sbUsers('POST',{username:nu.username.trim(),password_hash:hash,role:nu.role});
+      if(r.ok){const[u]=await r.json();setUsers(prev=>[...prev,u]);setShowAdd(false);setNu({username:'',pwd:'',role:'cashier'});}
+      else{const b=await r.json().catch(()=>({}));setAddErr(b?.message||dt.login?.errNet);}
+    }catch(e){setAddErr(dt.login?.errNet);}
+    setAdding(false);
+  };
+
+  const delUser=async(u)=>{
+    if(u.username===authUser?.username)return;
+    if(!window.confirm(du.confirmDel||'Confirm?'))return;
+    await sbUsers('DELETE','',`?id=eq.${u.id}`);
+    setUsers(prev=>prev.filter(x=>x.id!==u.id));
+  };
+
+  const fmtD=(s)=>fmtD2(s,dt===DT.fr?'fr':'ar');
+  const inp2={background:'var(--card2)',border:'1px solid var(--border)',borderRadius:8,padding:'10px 14px',color:'var(--text)',fontSize:13,outline:'none',width:'100%',boxSizing:'border-box'};
+
+  return(
+    <div style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:14,padding:28,marginBottom:20}}>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20}}>
+        <div style={{fontWeight:700,fontSize:16,color:'var(--blue)'}}>👥 {du.title}</div>
+        <button onClick={()=>{setShowAdd(v=>!v);setAddErr('');}} style={{background:'rgba(0,170,255,.1)',border:'1px solid rgba(0,170,255,.25)',borderRadius:8,padding:'8px 14px',color:'var(--blue)',fontSize:13,fontWeight:600,cursor:'pointer'}}>
+          {showAdd?du.cancel:du.add}
+        </button>
+      </div>
+
+      {showAdd&&(
+        <div style={{background:'var(--card2)',border:'1px solid var(--border)',borderRadius:10,padding:18,marginBottom:16,display:'grid',gridTemplateColumns:'1fr 1fr auto auto',gap:10,alignItems:'end'}}>
+          <div>
+            <div style={{fontSize:11,color:'var(--muted)',marginBottom:5}}>{du.username}</div>
+            <input value={nu.username} onChange={e=>setNu(p=>({...p,username:e.target.value}))} style={inp2} autoFocus/>
+          </div>
+          <div>
+            <div style={{fontSize:11,color:'var(--muted)',marginBottom:5}}>{du.pwd}</div>
+            <input type="password" value={nu.pwd} onChange={e=>setNu(p=>({...p,pwd:e.target.value}))} style={inp2}/>
+          </div>
+          <div>
+            <div style={{fontSize:11,color:'var(--muted)',marginBottom:5}}>{du.roleLabel}</div>
+            <select value={nu.role} onChange={e=>setNu(p=>({...p,role:e.target.value}))} style={{...inp2,width:'auto'}}>
+              <option value="cashier">{(du.roleNames||{}).cashier||'Cashier'}</option>
+              <option value="admin">{(du.roleNames||{}).admin||'Admin'}</option>
+            </select>
+          </div>
+          <button disabled={adding} onClick={addUser} style={{background:'var(--blue)',color:'#fff',border:'none',borderRadius:8,padding:'10px 18px',fontWeight:700,cursor:'pointer',opacity:adding?.6:1,whiteSpace:'nowrap'}}>
+            {adding?'..':du.save}
+          </button>
+          {addErr&&<div style={{gridColumn:'1/-1',color:'var(--red)',fontSize:12}}>{addErr}</div>}
+        </div>
+      )}
+
+      <table style={{width:'100%',borderCollapse:'collapse',fontSize:13}}>
+        <thead>
+          <tr>{(du.cols||['User','Role','Date','']).map(h=><th key={h} style={{textAlign:'right',padding:'8px 10px',color:'var(--muted)',fontWeight:600,borderBottom:'1px solid var(--border)',fontSize:11}}>{h}</th>)}</tr>
+        </thead>
+        <tbody>
+          {users.map(u=>(
+            <tr key={u.id}>
+              <td style={{padding:'10px',borderBottom:'1px solid rgba(30,45,74,.4)'}}>{u.username} {u.username===authUser?.username&&<span style={{fontSize:10,color:'var(--blue)',background:'rgba(0,170,255,.1)',padding:'2px 6px',borderRadius:10}}>{du.you}</span>}</td>
+              <td style={{padding:'10px',borderBottom:'1px solid rgba(30,45,74,.4)'}}><span style={{background:u.role==='admin'?'rgba(0,221,170,.1)':'rgba(0,170,255,.1)',color:u.role==='admin'?'var(--green)':'var(--blue)',padding:'2px 8px',borderRadius:10,fontSize:12}}>{(du.roleNames||{})[u.role]||u.role}</span></td>
+              <td style={{padding:'10px',borderBottom:'1px solid rgba(30,45,74,.4)',color:'var(--muted)'}}>{fmtD(u.created_at)}</td>
+              <td style={{padding:'10px',borderBottom:'1px solid rgba(30,45,74,.4)',textAlign:'center'}}>
+                {u.username!==authUser?.username&&<button onClick={()=>delUser(u)} style={{background:'rgba(255,68,68,.08)',border:'1px solid rgba(255,68,68,.2)',color:'var(--red)',borderRadius:7,padding:'4px 10px',fontSize:12,cursor:'pointer'}}>{du.delete}</button>}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+// ══════════════════════════════════════════════
+// SIDEBAR
+// ══════════════════════════════════════════════
+const NAV_KEYS=['overview','orders','products','inventory','analytics','customers','settings'];
+
+function Sidebar({active,setActive,collapsed,setCollapsed,dashLang,role}){
+  const CASHIER_KEYS=['products','inventory','orders'];
+  const visibleKeys=role==='admin'?NAV_KEYS:CASHIER_KEYS;
+  const dt=DT[dashLang||'ar'];
+  const w=collapsed?64:240;
+  return(
+    <aside style={{width:w,minHeight:'100vh',background:'var(--nav)',borderLeft:dashLang==='fr'?'none':'1px solid var(--border)',borderRight:dashLang==='fr'?'1px solid var(--border)':'none',position:'fixed',top:0,[dashLang==='fr'?'left':'right']:0,zIndex:100,transition:`width var(--dur-enter) var(--ease-out)`,overflow:'hidden',display:'flex',flexDirection:'column'}}>
+      {/* Logo */}
+      <div style={{padding:'18px 12px',borderBottom:'1px solid var(--border)',display:'flex',alignItems:'center',gap:12,minHeight:68}}>
+        <div style={{width:36,height:36,borderRadius:9,background:'rgba(0,170,255,.12)',border:'1px solid rgba(0,170,255,.2)',display:'flex',alignItems:'center',justifyContent:'center',color:'var(--blue)',flexShrink:0}}>
+          <IcoMonitor size={18}/>
+        </div>
+        {!collapsed&&<div style={{overflow:'hidden'}}>
+          <div style={{fontWeight:800,fontSize:15,color:'var(--blue)',whiteSpace:'nowrap'}}>TechStore.dz</div>
+          <div style={{fontSize:10,color:'var(--muted)'}}>{dashLang==='fr'?'Tableau de bord':'لوحة التحكم'}</div>
+        </div>}
+      </div>
+      {/* Nav */}
+      <nav style={{flex:1,padding:'10px 8px',overflowY:'auto'}}>
+        {visibleKeys.map(k=>(
+          <button key={k} onClick={()=>setActive(k)}
+            style={{width:'100%',display:'flex',alignItems:'center',gap:12,padding:collapsed?'11px':'11px 14px',borderRadius:10,border:'none',background:active===k?'rgba(0,170,255,.12)':'transparent',color:active===k?'var(--blue)':'var(--muted)',fontWeight:active===k?600:400,fontSize:14,cursor:'pointer',marginBottom:2,transition:`background var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out)`,justifyContent:collapsed?'center':'flex-start',textAlign:'right'}}
+            onMouseEnter={e=>{if(active!==k)e.currentTarget.style.background='rgba(255,255,255,.05)'}}
+            onMouseLeave={e=>{if(active!==k)e.currentTarget.style.background='transparent'}}>
+            {NAV_ICONS[k]}
+            {!collapsed&&<span style={{whiteSpace:'nowrap'}}>{dt.nav[k]}</span>}
+            {!collapsed&&active===k&&<span style={{marginRight:'auto',width:5,height:5,borderRadius:'50%',background:'var(--blue)',flexShrink:0}}/>}
+          </button>
+        ))}
+      </nav>
+      {/* Bottom */}
+      <div style={{padding:'10px 8px',borderTop:'1px solid var(--border)'}}>
+        <button onClick={()=>setCollapsed(c=>!c)}
+          style={{width:'100%',display:'flex',alignItems:'center',justifyContent:collapsed?'center':'flex-start',gap:12,padding:'10px 12px',borderRadius:10,border:'none',background:'transparent',color:'var(--muted)',cursor:'pointer',transition:`background var(--dur-fast) var(--ease-out)`}}
+          onMouseEnter={e=>e.currentTarget.style.background='rgba(255,255,255,.05)'}
+          onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
+          <IcoChevron size={18} left={!collapsed}/>
+          {!collapsed&&<span style={{fontSize:13}}>{dt.collapse}</span>}
+        </button>
+        <a href="/index.html" target="_blank"
+          style={{display:'flex',alignItems:'center',gap:12,padding:'10px 12px',borderRadius:10,color:'var(--muted)',fontSize:13,cursor:'pointer',marginTop:2,textDecoration:'none',transition:`background var(--dur-fast) var(--ease-out)`}}
+          onMouseEnter={e=>e.currentTarget.style.background='rgba(255,255,255,.05)'}
+          onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
+          <IcoBag size={18}/>
+          {!collapsed&&<span>{dt.store}</span>}
+        </a>
+      </div>
+    </aside>
+  );
+}
+
+// ══════════════════════════════════════════════
+// TOPBAR
+// ══════════════════════════════════════════════
+function TopBar({title,orders,dashLang,setDashLang,authUser,onLogout,dashTheme,setDashTheme}){
+  const dt=DT[dashLang||'ar'];
+  const [showNotif,setShowNotif]=useState(false);
+  const [readIds,setReadIds]=useState(()=>new Set());
+  const pendingOrders=orders.filter(o=>o.status==='معلق').slice(0,10);
+  const notif=pendingOrders.filter(o=>!readIds.has(o.id)).length;
+
+  const openNotif=()=>{
+    setShowNotif(v=>{
+      if(!v) setReadIds(prev=>new Set([...prev,...pendingOrders.map(o=>o.id)]));
+      return !v;
+    });
+  };
+  const now=new Date();
+  const dateStr=now.toLocaleDateString(dashLang==='fr'?'fr-FR':'ar-DZ',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+
+  const btnStyle={background:'var(--card)',border:'1px solid var(--border)',borderRadius:8,padding:'8px 10px',color:'var(--muted)',cursor:'pointer',display:'flex',alignItems:'center',gap:6,fontSize:13,transition:`border-color var(--dur-fast) var(--ease-out)`};
+
+  return(
+    <div style={{height:64,background:'var(--nav)',borderBottom:'1px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'space-between',padding:'0 24px',position:'sticky',top:0,zIndex:50}}>
+      <div>
+        <div style={{fontWeight:800,fontSize:18}}>{title}</div>
+        <div style={{fontSize:11,color:'var(--muted)'}}>{dateStr}</div>
+      </div>
+      <div style={{display:'flex',alignItems:'center',gap:10}}>
+
+        {/* Refresh */}
+        <button title={dt.refresh} onClick={()=>window.location.reload()} style={btnStyle}
+          onMouseEnter={e=>e.currentTarget.style.borderColor='var(--blue)'}
+          onMouseLeave={e=>e.currentTarget.style.borderColor='var(--border)'}>
+          <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+          </svg>
+          <span style={{fontSize:12}}>{dt.refresh}</span>
+        </button>
+
+        {/* Lang Toggle */}
+        <button onClick={()=>setDashLang(l=>l==='ar'?'fr':'ar')} style={{...btnStyle,fontWeight:700,color:'var(--blue)',borderColor:'rgba(0,170,255,.3)'}}>
+          {dashLang==='ar'?'FR':'AR'}
+        </button>
+
+        {/* Profile dropdown */}
+        {authUser&&React.createElement(function ProfileBtn(){
+          const [open,setOpen]=useState(false);
+          const ref=useRef(null);
+          const du=(DT[dashLang||'ar'].users||{});
+          const roleName=du.roleNames?.[authUser.role]||authUser.role;
+          const isLight=dashTheme==='light';
+          useEffect(()=>{
+            if(!open)return;
+            const close=(e)=>{if(ref.current&&!ref.current.contains(e.target))setOpen(false);};
+            document.addEventListener('mousedown',close);
+            return()=>document.removeEventListener('mousedown',close);
+          },[open]);
+          const initial=(authUser.username[0]||'A').toUpperCase();
+          const avatarStyle={width:34,height:34,borderRadius:'50%',background:'linear-gradient(135deg,var(--blue),var(--purple))',display:'flex',alignItems:'center',justifyContent:'center',fontWeight:800,fontSize:14,color:'#fff',flexShrink:0};
+          const menuItemStyle={width:'100%',display:'flex',alignItems:'center',gap:12,padding:'10px 12px',borderRadius:10,border:'none',background:'transparent',fontSize:13,cursor:'pointer',transition:'background .15s'};
+          return(
+            <div ref={ref} style={{position:'relative'}}>
+              <button onClick={()=>setOpen(v=>!v)}
+                style={{display:'flex',alignItems:'center',gap:10,padding:'6px 10px',background:open?'var(--card2)':'transparent',border:'1px solid '+(open?'var(--blue)':'var(--border)'),borderRadius:10,cursor:'pointer',transition:'all .2s',color:'var(--text)'}}>
+                <div style={avatarStyle}>{initial}</div>
+                <div style={{textAlign:dashLang==='fr'?'left':'right',lineHeight:1.3}}>
+                  <div style={{fontWeight:700,fontSize:13}}>{authUser.username}</div>
+                  <div style={{fontSize:10,color:'var(--muted)'}}>{roleName}</div>
+                </div>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{color:'var(--muted)',transform:open?'rotate(180deg)':'',transition:'transform .2s',flexShrink:0}}><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+              {open&&(
+                <div style={{position:'absolute',top:'calc(100% + 8px)',...(dashLang==='fr'?{right:0}:{left:0}),width:230,background:'var(--nav)',border:'1px solid var(--border)',borderRadius:14,boxShadow:'0 12px 40px rgba(0,0,0,.4)',zIndex:400,overflow:'hidden'}}>
+                  <div style={{padding:'16px',background:'var(--card2)',display:'flex',alignItems:'center',gap:12}}>
+                    <div style={{...avatarStyle,width:42,height:42,fontSize:16}}>{initial}</div>
+                    <div>
+                      <div style={{fontWeight:700,fontSize:14}}>{authUser.username}</div>
+                      <div style={{fontSize:11,color:'var(--blue)',background:'rgba(0,170,255,.1)',padding:'2px 8px',borderRadius:10,display:'inline-block',marginTop:2}}>{roleName}</div>
+                    </div>
+                  </div>
+                  <div style={{padding:'8px'}}>
+                    <button onClick={()=>setDashTheme(t=>t==='light'?'dark':'light')}
+                      style={{...menuItemStyle,color:'var(--text)'}}
+                      onMouseEnter={e=>e.currentTarget.style.background='rgba(128,128,128,.1)'}
+                      onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
+                      <span style={{fontSize:18}}>{isLight?'🌙':'☀️'}</span>
+                      <span>{isLight?(dashLang==='fr'?'Mode sombre':'الوضع الداكن'):(dashLang==='fr'?'Mode clair':'الوضع الفاتح')}</span>
+                    </button>
+                    <div style={{height:1,background:'var(--border)',margin:'4px 0'}}/>
+                    <button onClick={()=>{setOpen(false);onLogout();}}
+                      style={{...menuItemStyle,color:'var(--red)'}}
+                      onMouseEnter={e=>e.currentTarget.style.background='rgba(255,68,68,.08)'}
+                      onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
+                      <span style={{fontSize:18}}>⏻</span>
+                      <span>{du.logout||(dashLang==='fr'?'Déconnexion':'تسجيل الخروج')}</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        },null)}
+        {/* Notifications */}
+        <div style={{position:'relative'}}>
+          <button onClick={openNotif} style={btnStyle}
+            onMouseEnter={e=>e.currentTarget.style.borderColor='var(--blue)'}
+            onMouseLeave={e=>e.currentTarget.style.borderColor='var(--border)'}>
+            <IcoBell size={18}/>
+          </button>
+          {notif>0&&<span style={{position:'absolute',top:-5,right:-5,background:'var(--red)',color:'#fff',borderRadius:'50%',width:18,height:18,fontSize:10,fontWeight:700,display:'flex',alignItems:'center',justifyContent:'center',pointerEvents:'none'}}>{notif}</span>}
+          {showNotif&&(
+            <div style={{position:'absolute',top:'calc(100% + 8px)',...(dashLang==='fr'?{right:0}:{left:0}),width:320,background:'var(--nav)',border:'1px solid var(--border)',borderRadius:12,boxShadow:'0 8px 32px rgba(0,0,0,.4)',zIndex:200,overflow:'hidden'}}>
+              <div style={{padding:'12px 16px',borderBottom:'1px solid var(--border)',fontWeight:700,fontSize:14,display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                <span>{dt.notifTitle}</span>
+                {notif>0&&<span style={{background:'var(--red)',color:'#fff',borderRadius:10,padding:'2px 8px',fontSize:11}}>{notif}</span>}
+              </div>
+              {pendingOrders.length===0
+                ?<div style={{padding:20,color:'var(--muted)',fontSize:13,textAlign:'center'}}>{dt.noNotif}</div>
+                :pendingOrders.map(o=>(
+                  <div key={o.id} style={{padding:'12px 16px',borderBottom:'1px solid rgba(30,45,74,.3)',display:'flex',gap:10,alignItems:'flex-start'}}>
+                    <div style={{width:8,height:8,borderRadius:'50%',background:'var(--orange)',marginTop:5,flexShrink:0}}/>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{fontSize:13,fontWeight:600,color:'var(--text)'}}>{dashLang==='fr'?'Nouvelle commande':'طلب جديد'} <span style={{color:'var(--blue)',fontFamily:'monospace'}}>{o.id}</span></div>
+                      <div style={{fontSize:12,color:'var(--muted)',marginTop:2}}>{o.customer} · {trW(o.wilaya,dashLang)} · <span style={{color:'var(--green)',fontWeight:600}}>{fmtDA(o.amount,dashLang)}</span></div>
+                      <div style={{fontSize:11,color:'var(--muted)',marginTop:1}}>{o.product}</div>
+                    </div>
+                    <div style={{fontSize:10,color:'var(--muted)',flexShrink:0}}>{fmtD2(o.date,dashLang)}</div>
+                  </div>
+                ))
+              }
+              <div style={{padding:'8px 16px',borderTop:'1px solid var(--border)',textAlign:'center'}}>
+                <button onClick={()=>setShowNotif(false)} style={{background:'none',border:'none',color:'var(--blue)',fontSize:12,cursor:'pointer'}}>{dt.close}</button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* User */}
+        <div style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:8,padding:'8px 14px',display:'flex',alignItems:'center',gap:8}}>
+          <div style={{width:26,height:26,borderRadius:'50%',background:'rgba(0,170,255,.12)',border:'1px solid rgba(0,170,255,.2)',display:'flex',alignItems:'center',justifyContent:'center',color:'var(--blue)'}}>
+            <IcoUser size={14}/>
+          </div>
+          <div>
+            <div style={{fontSize:13,fontWeight:600,lineHeight:1.2}}>Admin</div>
+            <div style={{fontSize:10,color:'var(--muted)'}}>{dashLang==='fr'?'Gérant':'مدير المتجر'}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════
+// OVERVIEW PAGE
+// ══════════════════════════════════════════════
+function OverviewPage({orders,dashProducts,dt,dashLang,onNavigate}){
+  dt=dt||DT.ar;
+  const dov=dt.overview;
+  const completed=orders.filter(o=>o.status==='مكتمل');
+  const rev=completed.reduce((s,o)=>s+o.amount,0);
+  const pending=orders.filter(o=>o.status==='معلق').length;
+  const avg=completed.length?Math.round(rev/completed.length):0;
+  const topProducts=[...dashProducts].sort((a,b)=>b.sold-a.sold).slice(0,5);
+  const recentOrders=orders.slice(0,7);
+  const catSalesData=useMemo(()=>{
+    const acc={};
+    dashProducts.forEach(p=>{ if(p.cat&&(p.sold||0)>0) acc[p.cat]=(acc[p.cat]||0)+(p.sold||0); });
+    const entries=Object.entries(acc).sort((a,b)=>b[1]-a[1]);
+    return entries.length>0?entries:Object.entries(CAT_SALES).sort((a,b)=>b[1]-a[1]);
+  },[dashProducts]);
+
+  const monthlyOrdersData=useMemo(()=>{
+    const m=Array(12).fill(0);
+    orders.forEach(o=>{ const d=o.created_at||o.date; if(!d)return; const mo=new Date(d).getMonth(); if(mo>=0&&mo<12)m[mo]++; });
+    return m.some(v=>v>0)?m:MONTHLY_ORDERS;
+  },[orders]);
+
+  // Build real monthly revenue from orders (group by month of created_at/date)
+  const monthlyRev=useMemo(()=>{
+    const m=Array(12).fill(0);
+    orders.forEach(o=>{
+      if(o.status==='ملغى')return;
+      const d=o.created_at||o.date;
+      if(!d)return;
+      const mo=new Date(d).getMonth();
+      if(mo>=0&&mo<12)m[mo]+=(o.amount||0);
+    });
+    return m.some(v=>v>0)?m:MONTHLY_REVENUE;
+  },[orders]);
+
+  return(
+    <div className="page-enter" style={{padding:24,display:'flex',flexDirection:'column',gap:24}}>
+      {/* KPIs */}
+      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(200px,1fr))',gap:16}}>
+        <KpiCard icon={<IcoCash size={20}/>} title={dov.revenue} value={fmtDA(rev,dashLang)} sub={dov.completedOnly} color="var(--blue)" delta={12}/>
+        <KpiCard icon={<IcoPackage size={20}/>} title={dov.totalOrders} value={orders.length} sub={`${pending} ${dov.pendingLabel}`} color="var(--green)" delta={8} onClick={()=>onNavigate&&onNavigate('orders')}/>
+        <KpiCard icon={<IcoBarChart size={20}/>} title={dov.avgOrder} value={fmtDA(avg,dashLang)} sub={dov.perOrder} color="var(--purple)" delta={5}/>
+        <KpiCard icon={<IcoAlert size={20}/>} title={dov.belowThreshold} value={dashProducts.filter(p=>p.stock<8).length} sub={dov.needsRestock} color="var(--orange)" delta={-2} onClick={()=>onNavigate&&onNavigate('inventory',{invFilter:'low'})}/>
+      </div>
+
+      {/* Revenue Chart */}
+      <div style={{display:'grid',gridTemplateColumns:'2fr 1fr',gap:16}}>
+        <div style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:14,padding:20}}>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
+            <div>
+              <div style={{fontWeight:700,fontSize:15}}>📈 {dov.monthlyRevenue}</div>
+              <div style={{fontSize:12,color:'var(--muted)'}}>2026 — DA</div>
+            </div>
+          </div>
+          <LineChart data={monthlyRev} labels={dt.months} color="var(--blue)" h={180}/>
+        </div>
+        <div style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:14,padding:20}}>
+          <div style={{fontWeight:700,fontSize:15,marginBottom:4}}>🥧 {dov.payMethods}</div>
+          <div style={{fontSize:12,color:'var(--muted)',marginBottom:16}}></div>
+          <DonutChart
+            data={[
+              orders.filter(o=>o.payment==='COD').length||1,
+              orders.filter(o=>o.payment==='CIB/Edahabia').length||1,
+              orders.filter(o=>o.payment==='تحويل بنكي').length||1,
+            ]}
+            colors={['var(--blue)','var(--green)','var(--purple)']}
+            labels={['COD','CIB/Edahabia','تحويل بنكي']}
+          />
+        </div>
+      </div>
+
+      {/* Orders + Top Products */}
+      <div style={{display:'grid',gridTemplateColumns:'1.6fr 1fr',gap:16}}>
+        {/* Recent Orders */}
+        <div style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:14,padding:20,overflow:'hidden'}}>
+          <div style={{fontWeight:700,fontSize:15,marginBottom:16}}>📦 {dov.recentOrders}</div>
+          <table style={{width:'100%',borderCollapse:'collapse',fontSize:13}}>
+            <thead>
+              <tr style={{borderBottom:'1px solid var(--border)'}}>
+                {dov.recHeaders.map(h=>(
+                  <th key={h} style={{textAlign:'right',padding:'8px 10px',color:'var(--muted)',fontWeight:600,fontSize:12}}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {recentOrders.map(o=>(
+                <tr key={o.id} style={{borderBottom:'1px solid rgba(30,45,74,.5)'}}
+                  onMouseEnter={e=>e.currentTarget.style.background='rgba(0,170,255,.04)'}
+                  onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
+                  <td style={{padding:'10px',color:'var(--blue)',fontWeight:600}}>{o.id}</td>
+                  <td style={{padding:'10px'}}>{o.product.slice(0,18)}...</td>
+                  <td style={{padding:'10px',color:'var(--muted)'}}>{o.customer}</td>
+                  <td style={{padding:'10px',fontWeight:700,color:'var(--green)'}}>{fmt(o.amount)}</td>
+                  <td style={{padding:'10px'}}>
+                    <span style={{background:`${STATUS_COLORS[o.status]}18`,color:STATUS_COLORS[o.status],border:`1px solid ${STATUS_COLORS[o.status]}40`,fontSize:11,padding:'3px 8px',borderRadius:20,fontWeight:600}}>
+                      {dt.statuses[o.status]||o.status}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Top Products */}
+        <div style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:14,padding:20}}>
+          <div style={{fontWeight:700,fontSize:15,marginBottom:16}}>🏆 {dov.topProducts}</div>
+          {topProducts.map((p,i)=>(
+            <div key={p.id} style={{display:'flex',alignItems:'center',gap:12,marginBottom:14}}>
+              <span style={{color:'var(--muted)',fontSize:13,fontWeight:700,width:20,flexShrink:0}}>#{i+1}</span>
+              <ProdImg src={firstImg(p.img)} size={32} radius={6}/>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{fontSize:13,fontWeight:600,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{p.name}</div>
+                <div style={{display:'flex',alignItems:'center',gap:6,marginTop:4}}>
+                  <div style={{height:4,flex:1,background:'var(--border)',borderRadius:2,overflow:'hidden'}}>
+                    <div style={{height:'100%',width:`${(p.sold/Math.max(1,topProducts[0].sold))*100}%`,background:'var(--blue)',borderRadius:2}}/>
+                  </div>
+                  <span style={{fontSize:11,color:'var(--muted)',flexShrink:0}}>{p.sold}</span>
+                </div>
+              </div>
+              <div style={{fontSize:13,fontWeight:700,color:'var(--blue)',flexShrink:0}}>{fmtDA(p.price,dashLang)}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Orders bar + Category breakdown */}
+      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16}}>
+        <div style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:14,padding:20}}>
+          <div style={{fontWeight:700,fontSize:15,marginBottom:16}}>📅 الطلبات الشهرية</div>
+          <BarChart data={monthlyOrdersData} labels={dt.months} color="var(--green)" h={130}/>
+        </div>
+        <div style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:14,padding:20}}>
+          <div style={{fontWeight:700,fontSize:15,marginBottom:16}}>🗂️ المبيعات حسب الفئة</div>
+          {catSalesData.slice(0,6).map(([cat,cnt])=>(
+            <div key={cat} style={{display:'flex',alignItems:'center',gap:10,marginBottom:10}}>
+              <div style={{fontSize:12,color:'var(--text)',width:120,flexShrink:0,textAlign:'right'}}>{cat}</div>
+              <div style={{flex:1,height:8,background:'var(--border)',borderRadius:4,overflow:'hidden'}}>
+                <div style={{height:'100%',width:`${(cnt/catSalesData[0][1])*100}%`,background:'linear-gradient(90deg,var(--blue),var(--green))',borderRadius:4,transition:'width .6s ease'}}/>
+              </div>
+              <span style={{fontSize:12,color:'var(--muted)',width:30,flexShrink:0}}>{cnt}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════
+// ORDERS PAGE
+// ══════════════════════════════════════════════
+function OrderModal({o,onClose,dashLang,dt}){
+  if(!o)return null;
+  return(
+    <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.6)',zIndex:300,display:'flex',alignItems:'center',justifyContent:'center',backdropFilter:'none'}} onClick={onClose}>
+      <div style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:16,padding:28,maxWidth:520,width:'90%',maxHeight:'80vh',overflowY:'auto',boxShadow:'0 20px 60px rgba(0,0,0,.5)'}} onClick={e=>e.stopPropagation()}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20}}>
+          <div>
+            <div style={{fontWeight:800,fontSize:16,color:'var(--blue)',fontFamily:'monospace'}}>{o.id}</div>
+            <div style={{fontSize:12,color:'var(--muted)',marginTop:2}}>{fmtD2(o.date,dashLang)}</div>
+          </div>
+          <button onClick={onClose} style={{background:'var(--card2)',border:'1px solid var(--border)',borderRadius:8,padding:'6px 14px',color:'var(--muted)',cursor:'pointer',fontSize:13}}>✕</button>
+        </div>
+        {/* Customer info */}
+        <div style={{background:'var(--card2)',borderRadius:10,padding:16,marginBottom:16,border:'1px solid var(--border)'}}>
+          <div style={{fontWeight:700,fontSize:13,color:'var(--text)',marginBottom:10}}>معلومات الزبون</div>
+          {[[dt.customers?.infoLabels?.[0]||'الاسم',o.customer],[dt.customers?.infoLabels?.[1]||'الهاتف',o.phone||'—'],[dt.customers?.infoLabels?.[2]||'الولاية',trW(o.wilaya,dashLang)],[dt.customers?.infoLabels?.[3]||'العنوان',o.address||'—']].map(([l,v])=>(
+            <div key={l} style={{display:'flex',gap:8,marginBottom:6,fontSize:13}}>
+              <span style={{color:'var(--muted)',width:70,flexShrink:0}}>{l}:</span>
+              <span style={{color:'var(--text)',fontWeight:v==='—'?400:600}}>{v}</span>
+            </div>
+          ))}
+        </div>
+        {/* Order items */}
+        <div style={{background:'var(--card2)',borderRadius:10,padding:16,marginBottom:16,border:'1px solid var(--border)'}}>
+          <div style={{fontWeight:700,fontSize:13,color:'var(--text)',marginBottom:10}}>المنتجات</div>
+          {(o.items||[{name:o.product,price:o.amount,qty:o.qty}]).map((item,i)=>(
+            <div key={i} style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8,fontSize:13}}>
+              <span style={{color:'var(--text)'}}>{item.name}</span>
+              <span style={{color:'var(--muted)'}}>x{item.qty||1}</span>
+              <span style={{color:'var(--green)',fontWeight:700}}>{fmtDA((item.price||0)*(item.qty||1),dashLang)}</span>
+            </div>
+          ))}
+          <div style={{borderTop:'1px solid var(--border)',marginTop:10,paddingTop:10,display:'flex',justifyContent:'space-between',fontWeight:800,fontSize:15}}>
+            <span>الإجمالي</span>
+            <span style={{color:'var(--blue)'}}>{fmtDA(o.amount,dashLang)}</span>
+          </div>
+        </div>
+        {/* Payment + Status */}
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
+          <div style={{background:'var(--card2)',borderRadius:10,padding:14,border:'1px solid var(--border)',textAlign:'center'}}>
+            <div style={{fontSize:11,color:'var(--muted)',marginBottom:4}}>طريقة الدفع</div>
+            <div style={{fontWeight:700,color:'var(--purple)'}}>{o.payment}</div>
+          </div>
+          <div style={{background:'var(--card2)',borderRadius:10,padding:14,border:'1px solid var(--border)',textAlign:'center'}}>
+            <div style={{fontSize:11,color:'var(--muted)',marginBottom:4}}>الحالة</div>
+            <div style={{fontWeight:700,color:STATUS_COLORS[o.status]||'var(--text)'}}>{o.status}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function OrdersPage({orders,updateOrderStatus,deleteOrder,dt,dashLang}){
+  dt=dt||DT.ar;
+  const dor=dt.orders;
+  const [search,setSearch]=useState('');
+  const [statusF,setStatusF]=useState('');
+  const [page,setPage]=useState(1);
+  const [selectedOrder,setSelectedOrder]=useState(null);
+  const [confirmDel,setConfirmDel]=useState(null);
+  const PER=10;
+
+  const filtered=orders.filter(o=>{
+    const ms=!search||String(o.id).includes(search)||o.customer.includes(search)||o.product.toLowerCase().includes(search.toLowerCase());
+    const mst=!statusF||o.status===statusF;
+    return ms&&mst;
+  });
+  const pages=Math.ceil(filtered.length/PER);
+  const paged=filtered.slice((page-1)*PER,page*PER);
+
+  const stats=[
+    {value:'مكتمل',color:'var(--green)'},
+    {value:'معلق',color:'var(--orange)'},
+    {value:'مُشحون',color:'var(--blue)'},
+    {value:'ملغى',color:'var(--red)'},
+  ];
+
+  return(
+    <div className="page-enter" style={{padding:24}}>
+      <OrderModal o={selectedOrder} onClose={()=>setSelectedOrder(null)} dashLang={dashLang} dt={dt}/>
+      {/* Status Summary */}
+      <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:12,marginBottom:20}}>
+        {stats.map(s=>(
+          <div key={s.value} onClick={()=>setStatusF(statusF===s.value?'':s.value)} style={{background:statusF===s.value?`${s.color}18`:'var(--card)',border:`1px solid ${statusF===s.value?s.color:'var(--border)'}`,borderRadius:12,padding:16,textAlign:'center',cursor:'pointer',transition:'all .2s'}}>
+            <div style={{fontSize:22,fontWeight:900,color:s.color}}>{orders.filter(o=>o.status===s.value).length}</div>
+            <div style={{fontSize:13,color:'var(--muted)',marginTop:4}}>{dt.statuses[s.value]||s.value}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Filters */}
+      <div style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:14,padding:16,marginBottom:16,display:'flex',gap:12,flexWrap:'wrap',alignItems:'center'}}>
+        <input value={search} onChange={e=>{setSearch(e.target.value);setPage(1)}} placeholder={dor.searchPH} style={{flex:1,minWidth:200,background:'var(--card2)',border:'1px solid var(--border)',borderRadius:8,padding:'10px 14px',color:'var(--text)',fontSize:13,outline:'none'}}/>
+        <select value={statusF} onChange={e=>{setStatusF(e.target.value);setPage(1)}} style={{background:'var(--card2)',border:'1px solid var(--border)',borderRadius:8,padding:'10px 14px',color:'var(--text)',fontSize:13,outline:'none'}}>
+          <option value="">{dor.allStatus}</option>
+          {STATUSES.map(s=><option key={s} value={s}>{dt.statuses[s]||s}</option>)}
+        </select>
+        <div style={{color:'var(--muted)',fontSize:13}}>{filtered.length} {dor.countSuf}</div>
+      </div>
+
+      {/* Table */}
+      <div style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:14,overflow:'hidden'}}>
+        <table style={{width:'100%',borderCollapse:'collapse',fontSize:13}}>
+          <thead>
+            <tr style={{background:'var(--card2)',borderBottom:'1px solid var(--border)'}}>
+              {dor.headers.map(h=>(
+                <th key={h} style={{padding:'12px 14px',textAlign:'right',color:'var(--muted)',fontWeight:600,fontSize:12,whiteSpace:'nowrap'}}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {paged.map(o=>(
+              <tr key={o.id} style={{borderBottom:'1px solid rgba(30,45,74,.4)',transition:'background .15s'}}
+                onMouseEnter={e=>e.currentTarget.style.background='rgba(0,170,255,.04)'}
+                onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
+                <td style={{padding:'12px 14px',color:'var(--blue)',fontWeight:700,fontFamily:'monospace',fontSize:12}}>{o.id}</td>
+                <td style={{padding:'12px 14px'}}>{o.product.length>20?o.product.slice(0,20)+'…':o.product}</td>
+                <td style={{padding:'12px 14px'}}>{o.customer}</td>
+                <td style={{padding:'12px 14px',color:'var(--muted)'}}>{trW(o.wilaya,dashLang)}</td>
+                <td style={{padding:'12px 14px',fontWeight:700,color:'var(--green)',whiteSpace:'nowrap'}}>{fmtDA(o.amount,dashLang)}</td>
+                <td style={{padding:'12px 14px',color:'var(--muted)',fontSize:12}}>{o.payment}</td>
+                <td style={{padding:'8px 14px'}}>
+                  <select value={o.status} onChange={e=>updateOrderStatus(o._real_id||o.id,e.target.value)}
+                    style={{background:`${STATUS_COLORS[o.status]}14`,color:STATUS_COLORS[o.status],border:`1px solid ${STATUS_COLORS[o.status]}50`,borderRadius:20,padding:'4px 8px',fontSize:11,fontWeight:600,cursor:'pointer',outline:'none'}}>
+                    {STATUSES.map(s=><option key={s} value={s} style={{background:'var(--card)',color:'var(--text)'}}>{dt.statuses[s]||s}</option>)}
+                  </select>
+                </td>
+                <td style={{padding:'12px 14px',color:'var(--muted)',fontSize:12}}>{fmtD2(o.date,dashLang)}</td>
+                <td style={{padding:'8px 14px'}}>
+                  <div style={{display:'flex',gap:6,alignItems:'center'}}>
+                    <button onClick={()=>setSelectedOrder(o)} style={{background:'rgba(0,170,255,.1)',border:'1px solid rgba(0,170,255,.25)',borderRadius:6,padding:'5px 10px',color:'var(--blue)',cursor:'pointer',fontSize:11,fontWeight:600,whiteSpace:'nowrap'}}>{dor.details}</button>
+                    {confirmDel===o.id?(
+                      <React.Fragment>
+                        <button onClick={()=>{deleteOrder&&deleteOrder(o._real_id||o.id);setConfirmDel(null);}} style={{background:'rgba(255,68,68,.2)',border:'1px solid rgba(255,68,68,.5)',borderRadius:6,padding:'5px 10px',color:'var(--red)',cursor:'pointer',fontSize:11,fontWeight:700,whiteSpace:'nowrap'}}>✓ {dt.delete}</button>
+                        <button onClick={()=>setConfirmDel(null)} style={{background:'var(--card2)',border:'1px solid var(--border)',borderRadius:6,padding:'5px 8px',color:'var(--muted)',cursor:'pointer',fontSize:11}}>✕</button>
+                      </React.Fragment>
+                    ):(
+                      <button onClick={()=>setConfirmDel(o.id)} style={{background:'transparent',border:'1px solid rgba(255,68,68,.25)',borderRadius:6,padding:'5px 8px',color:'var(--red)',cursor:'pointer',fontSize:11,opacity:.7}}>{dt.delete}</button>
+                    )}
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        {/* Pagination */}
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'12px 16px',borderTop:'1px solid var(--border)'}}>
+          <div style={{fontSize:13,color:'var(--muted)'}}>{dor.pageOf(page,pages||1)}</div>
+          <div style={{display:'flex',gap:6}}>
+            <button disabled={page===1} onClick={()=>setPage(p=>p-1)} style={{background:'var(--card2)',border:'1px solid var(--border)',borderRadius:6,padding:'6px 12px',color:'var(--text)',cursor:page===1?'not-allowed':'pointer',opacity:page===1?.5:1}}>{dt.prev}</button>
+            {Array.from({length:Math.min(5,pages)},(_,i)=>{
+              const p=page<=3?i+1:page-2+i;
+              if(p<1||p>pages)return null;
+              return<button key={p} onClick={()=>setPage(p)} style={{background:p===page?'var(--blue)':'var(--card2)',border:`1px solid ${p===page?'var(--blue)':'var(--border)'}`,borderRadius:6,padding:'6px 10px',color:'#fff',cursor:'pointer',fontWeight:p===page?700:400}}>{p}</button>
+            })}
+            <button disabled={page===pages} onClick={()=>setPage(p=>p+1)} style={{background:'var(--card2)',border:'1px solid var(--border)',borderRadius:6,padding:'6px 12px',color:'var(--text)',cursor:page===pages?'not-allowed':'pointer',opacity:page===pages?.5:1}}>{dt.next}</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Parse img field: could be JSON array, single base64, or emoji
+const parseImgs=(img)=>{
+  if(!img)return['📦'];
+  if(img.startsWith('['))try{return JSON.parse(img);}catch{}
+  return[img];
+};
+const serializeImgs=(arr)=>arr.length===1?arr[0]:JSON.stringify(arr);
+const firstImg=(img)=>parseImgs(img)[0];
+
+// Shared image upload zone used in add/edit forms
+function ImgUploadZone({imgs,setImgs,dt}){
+  dt=dt||DT.ar;
+  const dpr=dt.products;
+  const [loading,setLoading]=useState(false);
+  const inputRef=React.useRef(null);
+
+  const add=async(e)=>{
+    const files=[...e.target.files];
+    e.target.value='';
+    if(!files.length)return;
+    setLoading(true);
+    const valid=[];
+    for(const f of files){
+      try{ const b=await resizeImage(f); if(b&&b.startsWith('data:'))valid.push(b); }
+      catch(err){ console.warn('skip img:',err.message); }
+    }
+    if(valid.length) setImgs([...imgs.filter(i=>i&&i!=='\u{1F4E6}'&&!i.startsWith('\u{1F4E6}')),...valid]);
+    setLoading(false);
+  };
+
+  const remove=(i)=>setImgs(imgs.filter((_,idx)=>idx!==i));
+  const visImgs=imgs.filter(i=>i&&i!=='📦');
+  return(
+    <div style={{marginTop:10}}>
+      <div style={{fontSize:12,color:'var(--muted)',marginBottom:6}}>{dpr.photos(visImgs.length)}</div>
+      <div style={{display:'flex',gap:8,flexWrap:'wrap',alignItems:'flex-start'}}>
+        {visImgs.map((src,i)=>(
+          <div key={i} style={{position:'relative',flexShrink:0}}>
+            <img src={src} loading="lazy" style={{width:72,height:72,objectFit:'cover',borderRadius:8,border:'1px solid var(--border)',display:'block'}}/>
+            <button type="button" onClick={()=>remove(i)} style={{position:'absolute',top:-6,right:-6,width:18,height:18,borderRadius:'50%',background:'var(--red)',border:'none',color:'#fff',fontSize:11,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',lineHeight:1}}>✕</button>
+          </div>
+        ))}
+        {loading?(
+          <div style={{width:72,height:72,display:'flex',alignItems:'center',justifyContent:'center',background:'var(--card2)',border:'1px solid var(--border)',borderRadius:8,flexShrink:0,fontSize:22}}>⏳</div>
+        ):(
+          <>
+            <input ref={inputRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" multiple style={{display:'none'}} onChange={add}/>
+            <button type="button" onClick={()=>inputRef.current&&inputRef.current.click()}
+              style={{width:72,height:72,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',cursor:'pointer',background:'var(--card2)',border:'2px dashed var(--border)',borderRadius:8,fontSize:11,color:'var(--muted)',gap:4,flexShrink:0,transition:'border-color .2s'}}
+              onMouseEnter={e=>e.currentTarget.style.borderColor='var(--blue)'}
+              onMouseLeave={e=>e.currentTarget.style.borderColor='var(--border)'}>
+              <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              {dpr.addPhoto}
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Reusable specs editor (AR + FR columns) ──────────────
+function SpecsEditor({specsAr,specsFr,onChangeAr,onChangeFr}){
+  const [draftAr,setDraftAr]=useState('');
+  const [draftFr,setDraftFr]=useState('');
+  const inp={width:'100%',background:'var(--bg)',border:'1px solid var(--border)',borderRadius:6,padding:'8px 10px',color:'var(--text)',fontSize:12,outline:'none'};
+  const col={flex:1,background:'var(--card2)',border:'1px solid var(--border)',borderRadius:10,padding:12,minWidth:0};
+  const tag={display:'flex',alignItems:'center',gap:6,background:'var(--bg)',border:'1px solid var(--border)',borderRadius:6,padding:'5px 10px',fontSize:12,marginBottom:6};
+  const addBtn={background:'var(--blue)',border:'none',borderRadius:6,padding:'0 12px',color:'#fff',cursor:'pointer',fontWeight:800,fontSize:17,height:34,flexShrink:0};
+  const addAr=()=>{if(!draftAr.trim())return;onChangeAr([...specsAr,draftAr.trim()]);setDraftAr('');};
+  const addFr=()=>{if(!draftFr.trim())return;onChangeFr([...specsFr,draftFr.trim()]);setDraftFr('');};
+  return(
+    <div style={{marginBottom:16}}>
+      <div style={{fontSize:12,color:'var(--muted)',fontWeight:600,marginBottom:8}}>المواصفات التقنية</div>
+      <div style={{display:'flex',gap:10}}>
+        <div style={col}>
+          <div style={{fontSize:11,color:'var(--blue)',fontWeight:700,marginBottom:8}}>عربي</div>
+          {specsAr.map((s,i)=>(
+            <div key={i} style={tag}>
+              <span style={{flex:1,lineHeight:1.3}}>{s}</span>
+              <button onClick={()=>onChangeAr(specsAr.filter((_,j)=>j!==i))} style={{background:'none',border:'none',color:'var(--red)',cursor:'pointer',fontSize:15,padding:0,lineHeight:1,flexShrink:0}}>×</button>
+            </div>
+          ))}
+          <div style={{display:'flex',gap:6,marginTop:4}}>
+            <input value={draftAr} onChange={e=>setDraftAr(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();addAr();}}}
+              placeholder="أضف مواصفة..." style={{...inp,flex:1}}/>
+            <button onClick={addAr} style={addBtn}>+</button>
+          </div>
+        </div>
+        <div style={col}>
+          <div style={{fontSize:11,color:'var(--blue)',fontWeight:700,marginBottom:8}}>Français</div>
+          {specsFr.map((s,i)=>(
+            <div key={i} style={tag}>
+              <span style={{flex:1,lineHeight:1.3}}>{s}</span>
+              <button onClick={()=>onChangeFr(specsFr.filter((_,j)=>j!==i))} style={{background:'none',border:'none',color:'var(--red)',cursor:'pointer',fontSize:15,padding:0,lineHeight:1,flexShrink:0}}>×</button>
+            </div>
+          ))}
+          <div style={{display:'flex',gap:6,marginTop:4}}>
+            <input value={draftFr} onChange={e=>setDraftFr(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();addFr();}}}
+              placeholder="Ajouter une spec..." style={{...inp,flex:1}}/>
+            <button onClick={addFr} style={addBtn}>+</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Edit product modal
+function EditProductModal({p,onSave,onClose,dt}){
+  dt=dt||DT.ar;
+  const dpr=dt.products;
+  const [form,setForm]=useState({
+    name:p.name||'',cat:p.cat||'معالجات',
+    basePrice:String(p.oldPrice||p.price||''),
+    salePrice:String(p.oldPrice?p.price:''),
+    stock:String(p.stock||20),brand:p.brand||'',
+    imgs:parseImgs(p.img),
+    specsAr:Array.isArray(p.specs_ar)?[...p.specs_ar]:[],
+    specsFr:Array.isArray(p.specs_fr)?[...p.specs_fr]:[],
+  });
+  const [saving,setSaving]=useState(false);
+
+  const discPct=form.salePrice&&Number(form.salePrice)<Number(form.basePrice)
+    ?Math.round((1-Number(form.salePrice)/Number(form.basePrice))*100):0;
+
+  const save=async()=>{
+    if(!form.name||!form.basePrice)return;
+    setSaving(true);
+    const imgVal=serializeImgs(form.imgs.length?form.imgs:['📦']);
+    const hasSale=form.salePrice&&Number(form.salePrice)<Number(form.basePrice);
+    const priceVal=hasSale?Number(form.salePrice):Number(form.basePrice);
+    const oldPriceVal=hasSale?Number(form.basePrice):null;
+    const payload={name:form.name,category_ar:form.cat,price:priceVal,
+      stock:Number(form.stock)||0,brand:form.brand,img:imgVal,in_stock:Number(form.stock)>0,
+      old_price:oldPriceVal,specs_ar:form.specsAr,specs_fr:form.specsFr};
+    if(_sbOk()){
+      const url=window.SUPABASE_URL,key=window.SUPABASE_ANON_KEY;
+      const h={'Content-Type':'application/json','apikey':key,'Authorization':'Bearer '+key,'Prefer':'return=minimal'};
+      let res=await fetch(`${url}/rest/v1/products?id=eq.${p.id}`,{method:'PATCH',headers:h,body:JSON.stringify(payload)});
+      if(!res.ok){const{old_price,...fb}=payload;await fetch(`${url}/rest/v1/products?id=eq.${p.id}`,{method:'PATCH',headers:h,body:JSON.stringify(fb)});}
+    }
+    onSave({...p,...payload,cat:form.cat,img:imgVal,oldPrice:oldPriceVal,specs_ar:form.specsAr,specs_fr:form.specsFr});
+    setSaving(false);
+    onClose();
+  };
+
+  const fi=(k,label,type='text')=>(
+    <div>
+      <label style={{fontSize:12,color:'var(--muted)',display:'block',marginBottom:4}}>{label}</label>
+      <input type={type} value={form[k]} onChange={e=>setForm(f=>({...f,[k]:e.target.value}))}
+        style={{width:'100%',background:'var(--bg)',border:'1px solid var(--border)',borderRadius:8,padding:'9px 12px',color:'var(--text)',fontSize:13,outline:'none'}}/>
+    </div>
+  );
+
+  return(
+    <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.65)',zIndex:300,display:'flex',alignItems:'center',justifyContent:'center',backdropFilter:'none'}} onClick={onClose}>
+      <div style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:16,padding:28,maxWidth:540,width:'92%',maxHeight:'88vh',overflowY:'auto',boxShadow:'0 20px 60px rgba(0,0,0,.5)'}} onClick={e=>e.stopPropagation()}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20}}>
+          <div style={{fontWeight:800,fontSize:16,color:'var(--blue)'}}>{dpr.editTitle}</div>
+          <button onClick={onClose} style={{background:'var(--card2)',border:'1px solid var(--border)',borderRadius:8,padding:'6px 14px',color:'var(--muted)',cursor:'pointer'}}>✕</button>
+        </div>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:12}}>
+          {fi('name',dpr.pName)}
+          {fi('brand',dpr.brand)}
+          {fi('basePrice',dpr.price,'number')}
+          {fi('stock',dpr.stock,'number')}
+        </div>
+        <div style={{marginBottom:12}}>
+          <label style={{fontSize:12,color:'var(--muted)',display:'block',marginBottom:4}}>{dpr.oldPrice}</label>
+          <div style={{display:'flex',gap:8,alignItems:'center'}}>
+            <input type="number" value={form.salePrice} onChange={e=>setForm(f=>({...f,salePrice:e.target.value}))}
+              style={{flex:1,background:'var(--bg)',border:'1px solid var(--border)',borderRadius:8,padding:'9px 12px',color:'var(--text)',fontSize:13,outline:'none'}}/>
+            {discPct>0?(
+              <div style={{display:'flex',alignItems:'center',gap:6,flexShrink:0,background:'rgba(255,68,68,.1)',border:'1px solid rgba(255,68,68,.3)',borderRadius:8,padding:'9px 14px'}}>
+                <span style={{fontWeight:800,color:'var(--red)',fontSize:15}}>-{discPct}%</span>
+              </div>
+            ):(
+              <div style={{flexShrink:0,background:'var(--card2)',border:'1px solid var(--border)',borderRadius:8,padding:'9px 14px',color:'var(--muted)',fontSize:12}}>
+                {dpr.discount}: —
+              </div>
+            )}
+          </div>
+        </div>
+        <div style={{marginBottom:12}}>
+          <label style={{fontSize:12,color:'var(--muted)',display:'block',marginBottom:4}}>{dpr.cat}</label>
+          <select value={form.cat} onChange={e=>setForm(f=>({...f,cat:e.target.value}))}
+            style={{width:'100%',background:'var(--bg)',border:'1px solid var(--border)',borderRadius:8,padding:'9px 12px',color:'var(--text)',fontSize:13,outline:'none'}}>
+            {["تجميعات جاهزة","معالجات","كروت شاشة","لوحات أم","ذاكرة RAM","تخزين","طاقة","أبراج","شاشات","تبريد"].map((c,i)=><option key={c} value={c}>{dt.cats[i]||c}</option>)}
+          </select>
+        </div>
+        <ImgUploadZone imgs={form.imgs} setImgs={v=>setForm(f=>({...f,imgs:v}))} dt={dt}/>
+        <SpecsEditor
+          specsAr={form.specsAr} specsFr={form.specsFr}
+          onChangeAr={v=>setForm(f=>({...f,specsAr:v}))}
+          onChangeFr={v=>setForm(f=>({...f,specsFr:v}))}
+        />
+        <div style={{display:'flex',gap:10,marginTop:4}}>
+          <button onClick={save} disabled={saving} style={{flex:1,background:'var(--blue)',border:'none',borderRadius:8,padding:'11px',color:'#fff',fontWeight:700,cursor:'pointer',opacity:saving?.7:1}}>
+            {saving?dt.saving:dpr.saveEdits}
+          </button>
+          <button onClick={onClose} style={{background:'var(--card2)',border:'1px solid var(--border)',borderRadius:8,padding:'11px 20px',color:'var(--muted)',cursor:'pointer'}}>{dt.cancel}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════
+// PRODUCTS PAGE
+// ══════════════════════════════════════════════
+function ProductsPage({dashProducts,dashLang,dt,onPatch,onAdd,onDel}){
+  dt=dt||DT.ar;
+  const dpr=dt.products;
+  const [search,setSearch]=useState('');
+  const [editId,setEditId]=useState(null);
+  const [editProduct,setEditProduct]=useState(null);
+  const [showAdd,setShowAdd]=useState(false);
+  const [newP,setNewP]=useState({name:'',cat:'معالجات',basePrice:'',salePrice:'',stock:'',brand:'',imgs:[],specsAr:[],specsFr:[]});
+
+
+  const filtered=dashProducts.filter(p=>!search||p.name.toLowerCase().includes(search.toLowerCase())||p.cat.includes(search)||p.brand.toLowerCase().includes(search.toLowerCase()));
+
+  const deleteP=async(id)=>{
+    onDel(id);
+    if(_sbOk()){
+      const url=window.SUPABASE_URL,key=window.SUPABASE_ANON_KEY;
+      await fetch(`${url}/rest/v1/products?id=eq.${id}`,{
+        method:'DELETE',
+        headers:{'apikey':key,'Authorization':'Bearer '+key}
+      });
+    }
+  };
+
+  const addP=async()=>{
+    if(!newP.name||!newP.basePrice)return;
+    const imgVal=serializeImgs(newP.imgs.length?newP.imgs:['📦']);
+    const hasSale=newP.salePrice&&Number(newP.salePrice)<Number(newP.basePrice);
+    const priceVal=hasSale?Number(newP.salePrice):Number(newP.basePrice);
+    const oldPriceVal=hasSale?Number(newP.basePrice):null;
+    const payload={name:newP.name,category_ar:newP.cat,price:priceVal,
+      stock:Number(newP.stock)||20,brand:newP.brand,img:imgVal,in_stock:true,
+      old_price:oldPriceVal,specs_ar:newP.specsAr,specs_fr:newP.specsFr,rating:4.5,reviews:0};
+    if(_sbOk()){
+      const url=window.SUPABASE_URL,key=window.SUPABASE_ANON_KEY;
+      const h={'Content-Type':'application/json','apikey':key,'Authorization':'Bearer '+key,'Prefer':'return=representation'};
+      let res=await fetch(`${url}/rest/v1/products`,{method:'POST',headers:h,body:JSON.stringify(payload)});
+      if(!res.ok){const{old_price,...fb}=payload;res=await fetch(`${url}/rest/v1/products`,{method:'POST',headers:h,body:JSON.stringify(fb)});}
+      if(res.ok){const[data]=await res.json();if(data)onAdd(mapDashProduct(data));}
+    }else{
+      onAdd({...payload,id:Date.now(),cat:newP.cat,sold:0,oldPrice:oldPriceVal});
+    }
+    setNewP({name:'',cat:'معالجات',basePrice:'',salePrice:'',stock:'',brand:'',imgs:[],specsAr:[],specsFr:[]});
+    setShowAdd(false);
+  };
+
+  const onEditSave=(updated)=>{
+    onPatch(updated.id,updated);
+  };
+
+  return(
+    <div className="page-enter" style={{padding:24}}>
+      {editProduct&&<EditProductModal p={editProduct} onSave={onEditSave} onClose={()=>setEditProduct(null)} dt={dt}/>}
+      {/* Header */}
+      <div style={{display:'flex',gap:12,marginBottom:20,alignItems:'center',flexWrap:'wrap'}}>
+        <input value={search} onChange={e=>setSearch(e.target.value)} placeholder={dpr.searchPH} style={{flex:1,minWidth:200,background:'var(--card)',border:'1px solid var(--border)',borderRadius:8,padding:'10px 14px',color:'var(--text)',fontSize:13,outline:'none'}}/>
+        <span style={{color:'var(--muted)',fontSize:13}}>{filtered.length}</span>
+        <button onClick={()=>setShowAdd(o=>!o)} style={{background:'var(--blue)',border:'none',borderRadius:8,padding:'10px 18px',color:'#fff',fontSize:13,fontWeight:700,cursor:'pointer'}}>
+          {dpr.addBtn}
+        </button>
+      </div>
+
+      {/* Add Form */}
+      {showAdd&&(
+        <div style={{background:'var(--card)',border:'1px solid var(--blue)',borderRadius:14,padding:20,marginBottom:16}}>
+          <div style={{fontWeight:700,marginBottom:14,color:'var(--blue)'}}>➕ {dpr.addBtn}</div>
+          <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(180px,1fr))',gap:10}}>
+            {[[dpr.pName,'name','text'],[dpr.brand,'brand','text'],[dpr.price,'basePrice','number'],[dpr.stock,'stock','number']].map(([ph,k,type])=>(
+              <input key={k} type={type} placeholder={ph} value={newP[k]} onChange={e=>setNewP(p=>({...p,[k]:e.target.value}))} style={{background:'var(--card2)',border:'1px solid var(--border)',borderRadius:8,padding:'10px 12px',color:'var(--text)',fontSize:13,outline:'none'}}/>
+            ))}
+            <div style={{display:'flex',gap:6,alignItems:'center'}}>
+              <input type="number" placeholder={dpr.oldPrice} value={newP.salePrice} onChange={e=>setNewP(p=>({...p,salePrice:e.target.value}))} style={{flex:1,background:'var(--card2)',border:'1px solid var(--border)',borderRadius:8,padding:'10px 12px',color:'var(--text)',fontSize:13,outline:'none'}}/>
+              {newP.salePrice&&Number(newP.salePrice)<Number(newP.basePrice)&&<span style={{flexShrink:0,background:'var(--red)',color:'#fff',fontSize:11,fontWeight:700,padding:'3px 7px',borderRadius:6,whiteSpace:'nowrap'}}>-{Math.round((1-Number(newP.salePrice)/Number(newP.basePrice))*100)}%</span>}
+            </div>
+            <select value={newP.cat} onChange={e=>setNewP(p=>({...p,cat:e.target.value}))} style={{background:'var(--card2)',border:'1px solid var(--border)',borderRadius:8,padding:'10px 12px',color:'var(--text)',fontSize:13,outline:'none'}}>
+              {["تجميعات جاهزة","معالجات","كروت شاشة","لوحات أم","ذاكرة RAM","تخزين","طاقة","أبراج","شاشات","تبريد"].map((c,i)=><option key={c} value={c}>{dt.cats[i]||c}</option>)}
+            </select>
+          </div>
+          <ImgUploadZone imgs={newP.imgs} setImgs={v=>setNewP(p=>({...p,imgs:v}))} dt={dt}/>
+          <SpecsEditor
+            specsAr={newP.specsAr} specsFr={newP.specsFr}
+            onChangeAr={v=>setNewP(p=>({...p,specsAr:v}))}
+            onChangeFr={v=>setNewP(p=>({...p,specsFr:v}))}
+          />
+          <div style={{display:'flex',gap:10,marginTop:4}}>
+            <button onClick={addP} style={{background:'var(--green)',border:'none',borderRadius:8,padding:'10px 20px',color:'#fff',fontWeight:700,cursor:'pointer',fontSize:13}}>{dt.save}</button>
+            <button onClick={()=>setShowAdd(false)} style={{background:'var(--card2)',border:'1px solid var(--border)',borderRadius:8,padding:'10px 20px',color:'var(--muted)',cursor:'pointer',fontSize:13}}>{dt.cancel}</button>
+          </div>
+        </div>
+      )}
+
+      {/* Table */}
+      <div style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:14,overflow:'hidden'}}>
+        <table style={{width:'100%',borderCollapse:'collapse',fontSize:13}}>
+          <thead>
+            <tr style={{background:'var(--card2)',borderBottom:'1px solid var(--border)'}}>
+              {dpr.headers.map(h=>(
+                <th key={h} style={{padding:'12px 14px',textAlign:'right',color:'var(--muted)',fontWeight:600,fontSize:12}}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {filtered.map(p=>(
+              <tr key={p.id} style={{borderBottom:'1px solid rgba(30,45,74,.4)',transition:'background .15s'}}
+                onMouseEnter={e=>e.currentTarget.style.background='rgba(0,170,255,.04)'}
+                onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
+                <td style={{padding:'12px 14px'}}>
+                  <div style={{display:'flex',alignItems:'center',gap:10}}>
+                    <ProdImg src={firstImg(p.img)} size={36} radius={6}/>
+                    <span style={{fontWeight:600}}>{p.name}</span>
+                  </div>
+                </td>
+                <td style={{padding:'12px 14px'}}><span style={{background:'rgba(0,170,255,.1)',color:'var(--blue)',fontSize:11,padding:'3px 8px',borderRadius:20}}>{trCat(p.cat,dt)}</span></td>
+                <td style={{padding:'12px 14px',color:'var(--muted)'}}>{p.brand}</td>
+                <td style={{padding:'12px 14px',whiteSpace:'nowrap'}}>
+                  <div style={{fontWeight:700,color:'var(--green)'}}>{fmtDA(p.price,dashLang)}</div>
+                  {p.oldPrice&&p.oldPrice>p.price&&(
+                    <div style={{display:'flex',alignItems:'center',gap:4,marginTop:3}}>
+                      <span style={{fontSize:11,color:'var(--muted)',textDecoration:'line-through'}}>{fmtDA(p.oldPrice,dashLang)}</span>
+                      <span style={{fontSize:10,background:'rgba(255,68,68,.12)',color:'var(--red)',border:'1px solid rgba(255,68,68,.25)',padding:'1px 5px',borderRadius:10,fontWeight:700}}>-{Math.round((1-p.price/p.oldPrice)*100)}%</span>
+                    </div>
+                  )}
+                </td>
+                <td style={{padding:'12px 14px'}}>
+                  <span style={{color:p.stock<8?'var(--red)':p.stock<20?'var(--orange)':'var(--green)',fontWeight:700}}>
+                    {p.stock} {p.stock<8&&'⚠️'}
+                  </span>
+                </td>
+                <td style={{padding:'12px 14px'}}>
+                  <div style={{display:'flex',alignItems:'center',gap:8}}>
+                    <div style={{width:60,height:6,background:'var(--border)',borderRadius:3,overflow:'hidden'}}>
+                      <div style={{height:'100%',width:`${Math.min(100,(p.sold/210)*100)}%`,background:'var(--blue)',borderRadius:3}}/>
+                    </div>
+                    <span style={{color:'var(--muted)',fontSize:12}}>{p.sold}</span>
+                  </div>
+                </td>
+                <td style={{padding:'12px 14px'}}>
+                  <div style={{display:'flex',gap:6}}>
+                    <button onClick={()=>setEditProduct(p)} style={{background:'rgba(0,170,255,.1)',border:'1px solid rgba(0,170,255,.2)',borderRadius:6,padding:'5px 10px',color:'var(--blue)',cursor:'pointer',fontSize:12,fontWeight:600}}>{dt.edit}</button>
+                    <button onClick={()=>deleteP(p.id)} style={{background:'rgba(255,68,68,.1)',border:'1px solid rgba(255,68,68,.2)',borderRadius:6,padding:'5px 10px',color:'var(--red)',cursor:'pointer',fontSize:12,fontWeight:600}}>{dt.delete}</button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════
+// INVENTORY PAGE
+// ══════════════════════════════════════════════
+function InventoryPage({dashProducts,dt,onPatch,invInitFilter,setInvInitFilter}){
+  dt=dt||DT.ar;
+  const din=dt.inventory;
+  const [stockFilter,setStockFilter]=React.useState(null);
+  React.useEffect(()=>{
+    if(invInitFilter){setStockFilter(invInitFilter);setInvInitFilter&&setInvInitFilter(null);}
+  },[invInitFilter]);
+
+  const updateStock=async(id,delta)=>{
+    const cur=dashProducts.find(p=>p.id===id);
+    if(!cur)return;
+    const newStock=Math.max(0,(cur.stock||0)+delta);
+    onPatch(id,{stock:newStock,in_stock:newStock>0});
+    if(_sbOk()){
+      const url=window.SUPABASE_URL,key=window.SUPABASE_ANON_KEY;
+      await fetch(`${url}/rest/v1/products?id=eq.${id}`,{
+        method:'PATCH',
+        headers:{'Content-Type':'application/json','apikey':key,'Authorization':'Bearer '+key,'Prefer':'return=minimal'},
+        body:JSON.stringify({stock:newStock,in_stock:newStock>0})
+      });
+    }
+  };
+
+  const lowStock=dashProducts.filter(p=>p.stock<8);
+  const outStock=dashProducts.filter(p=>p.stock===0);
+
+  return(
+    <div className="page-enter" style={{padding:24}}>
+      {/* Alerts */}
+      <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:12,marginBottom:20}}>
+        <div onClick={()=>setStockFilter(stockFilter==='out'?null:'out')} style={{background:stockFilter==='out'?'rgba(255,68,68,.18)':'rgba(255,68,68,.08)',border:`1px solid ${stockFilter==='out'?'rgba(255,68,68,.7)':'rgba(255,68,68,.3)'}`,borderRadius:12,padding:16,cursor:'pointer',transition:'all .2s',transform:stockFilter==='out'?'translateY(-2px)':'none',boxShadow:stockFilter==='out'?'0 4px 16px rgba(255,68,68,.2)':'none'}}>
+          <div style={{fontSize:22,fontWeight:900,color:'var(--red)'}}>{outStock.length}</div>
+          <div style={{fontSize:13,color:'var(--muted)',marginTop:4}}>⛔ {din.outStock}</div>
+          {stockFilter==='out'&&<div style={{fontSize:10,color:'var(--red)',marginTop:6,fontWeight:700}}>● فلتر نشط</div>}
+        </div>
+        <div onClick={()=>setStockFilter(stockFilter==='low'?null:'low')} style={{background:stockFilter==='low'?'rgba(255,153,0,.18)':'rgba(255,153,0,.08)',border:`1px solid ${stockFilter==='low'?'rgba(255,153,0,.7)':'rgba(255,153,0,.3)'}`,borderRadius:12,padding:16,cursor:'pointer',transition:'all .2s',transform:stockFilter==='low'?'translateY(-2px)':'none',boxShadow:stockFilter==='low'?'0 4px 16px rgba(255,153,0,.2)':'none'}}>
+          <div style={{fontSize:22,fontWeight:900,color:'var(--orange)'}}>{lowStock.length}</div>
+          <div style={{fontSize:13,color:'var(--muted)',marginTop:4}}>⚠️ {din.lowStock}</div>
+          {stockFilter==='low'&&<div style={{fontSize:10,color:'var(--orange)',marginTop:6,fontWeight:700}}>● فلتر نشط</div>}
+        </div>
+        <div onClick={()=>setStockFilter(stockFilter==='ok'?null:'ok')} style={{background:stockFilter==='ok'?'rgba(0,221,170,.18)':'rgba(0,221,170,.08)',border:`1px solid ${stockFilter==='ok'?'rgba(0,221,170,.7)':'rgba(0,221,170,.3)'}`,borderRadius:12,padding:16,cursor:'pointer',transition:'all .2s',transform:stockFilter==='ok'?'translateY(-2px)':'none',boxShadow:stockFilter==='ok'?'0 4px 16px rgba(0,221,170,.2)':'none'}}>
+          <div style={{fontSize:22,fontWeight:900,color:'var(--green)'}}>{dashProducts.filter(p=>p.stock>=8).length}</div>
+          <div style={{fontSize:13,color:'var(--muted)',marginTop:4}}>✅ {din.sufficient}</div>
+          {stockFilter==='ok'&&<div style={{fontSize:10,color:'var(--green)',marginTop:6,fontWeight:700}}>● فلتر نشط</div>}
+        </div>
+      </div>
+
+      {lowStock.length>0&&(
+        <div style={{background:'rgba(255,153,0,.06)',border:'1px solid rgba(255,153,0,.25)',borderRadius:12,padding:14,marginBottom:16,display:'flex',alignItems:'center',gap:10}}>
+          <span style={{fontSize:20}}>⚠️</span>
+          <span style={{fontSize:13,color:'var(--orange)'}}>{din.warning(lowStock.length)} — {lowStock.map(p=>p.name).join(', ')}</span>
+        </div>
+      )}
+
+      {/* Stock Table */}
+      <div style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:14,overflow:'hidden'}}>
+        <table style={{width:'100%',borderCollapse:'collapse',fontSize:13}}>
+          <thead>
+            <tr style={{background:'var(--card2)',borderBottom:'1px solid var(--border)'}}>
+              {din.headers.map(h=>(
+                <th key={h} style={{padding:'12px 14px',textAlign:'right',color:'var(--muted)',fontWeight:600,fontSize:12}}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {dashProducts.filter(p=>{
+              if(stockFilter==='out') return p.stock===0;
+              if(stockFilter==='low') return p.stock>0&&p.stock<8;
+              if(stockFilter==='ok')  return p.stock>=8;
+              return true;
+            }).map(p=>{
+              const pct=Math.min(100,(p.stock/60)*100);
+              const barColor=p.stock===0?'var(--red)':p.stock<8?'var(--orange)':p.stock<20?'var(--blue)':'var(--green)';
+              return(
+                <tr key={p.id} style={{borderBottom:'1px solid rgba(30,45,74,.4)',transition:'background .15s'}}
+                  onMouseEnter={e=>e.currentTarget.style.background='rgba(0,170,255,.04)'}
+                  onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
+                  <td style={{padding:'12px 14px'}}>
+                    <div style={{display:'flex',alignItems:'center',gap:8}}>
+                      <ProdImg src={firstImg(p.img)} size={36}/>
+                      <span style={{fontWeight:600}}>{p.name}</span>
+                    </div>
+                  </td>
+                  <td style={{padding:'12px 14px',color:'var(--muted)',fontSize:12}}>{trCat(p.cat,dt)}</td>
+                  <td style={{padding:'12px 14px'}}>
+                    <span style={{fontSize:20,fontWeight:900,color:barColor}}>{p.stock}</span>
+                    <span style={{fontSize:11,color:'var(--muted)',marginRight:4}}>{din.unit}</span>
+                  </td>
+                  <td style={{padding:'12px 14px',width:200}}>
+                    <div style={{display:'flex',alignItems:'center',gap:8}}>
+                      <div style={{flex:1,height:8,background:'var(--border)',borderRadius:4,overflow:'hidden'}}>
+                        <div style={{height:'100%',width:`${pct}%`,background:barColor,borderRadius:4,transition:'width .4s'}}/>
+                      </div>
+                      <span style={{fontSize:11,color:'var(--muted)',width:30}}>{Math.round(pct)}%</span>
+                    </div>
+                  </td>
+                  <td style={{padding:'12px 14px'}}>
+                    <div style={{display:'flex',alignItems:'center',gap:6}}>
+                      <button onClick={()=>updateStock(p.id,-5)} style={{background:'rgba(255,68,68,.1)',border:'1px solid rgba(255,68,68,.2)',borderRadius:6,padding:'4px 8px',color:'var(--red)',cursor:'pointer',fontSize:12}}>-5</button>
+                      <button onClick={()=>updateStock(p.id,-1)} style={{background:'var(--card2)',border:'1px solid var(--border)',borderRadius:6,padding:'4px 8px',color:'var(--text)',cursor:'pointer',fontSize:12}}>-1</button>
+                      <button onClick={()=>updateStock(p.id,1)} style={{background:'var(--card2)',border:'1px solid var(--border)',borderRadius:6,padding:'4px 8px',color:'var(--text)',cursor:'pointer',fontSize:12}}>+1</button>
+                      <button onClick={()=>updateStock(p.id,10)} style={{background:'rgba(0,221,170,.1)',border:'1px solid rgba(0,221,170,.2)',borderRadius:6,padding:'4px 8px',color:'var(--green)',cursor:'pointer',fontSize:12}}>+10</button>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════
+// ANALYTICS PAGE
+// ══════════════════════════════════════════════
+function AnalyticsPage({orders,dt,dashLang}){
+  dt=dt||DT.ar;
+  const dan=dt.analytics;
+  const byWilaya=orders.reduce((acc,o)=>{acc[o.wilaya]=(acc[o.wilaya]||0)+1;return acc},{});
+  const wilayaData=Object.entries(byWilaya).sort((a,b)=>b[1]-a[1]);
+  const byStatus=STATUSES.map(s=>({s,n:orders.filter(o=>o.status===s).length}));
+
+  const monthlyRev=useMemo(()=>{
+    const m=Array(12).fill(0);
+    orders.forEach(o=>{
+      if(o.status==='ملغى')return;
+      const d=o.created_at||o.date;if(!d)return;
+      const mo=new Date(d).getMonth();if(mo>=0&&mo<12)m[mo]+=(o.amount||0);
+    });
+    return m.some(v=>v>0)?m:MONTHLY_REVENUE;
+  },[orders]);
+
+  const monthlyOrd=useMemo(()=>{
+    const m=Array(12).fill(0);
+    orders.forEach(o=>{
+      const d=o.created_at||o.date;if(!d)return;
+      const mo=new Date(d).getMonth();if(mo>=0&&mo<12)m[mo]++;
+    });
+    return m.some(v=>v>0)?m:MONTHLY_ORDERS;
+  },[orders]);
+
+  const bestIdx=monthlyRev.indexOf(Math.max(...monthlyRev));
+  const yearTotal=monthlyRev.reduce((s,v)=>s+v,0);
+  const growth=monthlyRev[0]>0?Math.round((monthlyRev[11]-monthlyRev[0])/monthlyRev[0]*100):0;
+
+  return(
+    <div className="page-enter" style={{padding:24,display:'flex',flexDirection:'column',gap:20}}>
+      {/* Revenue Line */}
+      <div style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:14,padding:24}}>
+        <div style={{fontWeight:700,fontSize:16,marginBottom:4}}>{dan.revTitle}</div>
+        <div style={{fontSize:12,color:'var(--muted)',marginBottom:16}}>{dan.revSub}</div>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:12,marginBottom:20}}>
+          {[
+            {l:dan.bestMonth,v:dt.months[bestIdx],c:'var(--green)'},
+            {l:dan.bestRev,v:fmtDA(Math.max(...monthlyRev),dashLang),c:'var(--blue)'},
+            {l:dan.yearTotal,v:fmtDA(yearTotal,dashLang),c:'var(--purple)'},
+            {l:dan.growth,v:(growth>=0?'+':'')+growth+'%',c:'var(--orange)'},
+          ].map(({l,v,c})=>(
+            <div key={l} style={{background:'var(--card2)',border:'1px solid var(--border)',borderRadius:10,padding:14,textAlign:'center'}}>
+              <div style={{fontSize:18,fontWeight:800,color:c}}>{v}</div>
+              <div style={{fontSize:12,color:'var(--muted)',marginTop:4}}>{l}</div>
+            </div>
+          ))}
+        </div>
+        <LineChart data={monthlyRev} labels={dt.months} color="var(--blue)" h={200}/>
+      </div>
+
+      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:20}}>
+        {/* Wilaya breakdown */}
+        <div style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:14,padding:20}}>
+          <div style={{fontWeight:700,fontSize:15,marginBottom:16}}>{dan.byWilaya}</div>
+          {wilayaData.map(([w,n],i)=>(
+            <div key={w} style={{display:'flex',alignItems:'center',gap:10,marginBottom:10}}>
+              <span style={{fontSize:12,color:'var(--muted)',width:18,textAlign:'center'}}>{i+1}</span>
+              <span style={{fontSize:13,flex:1}}>{trW(w,dashLang)}</span>
+              <div style={{width:120,height:8,background:'var(--border)',borderRadius:4,overflow:'hidden'}}>
+                <div style={{height:'100%',width:`${(n/wilayaData[0][1])*100}%`,background:'linear-gradient(90deg,var(--blue),var(--green))',borderRadius:4}}/>
+              </div>
+              <span style={{fontSize:13,fontWeight:700,color:'var(--blue)',width:28,textAlign:'center'}}>{n}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* Status + Payment Donut */}
+        <div style={{display:'flex',flexDirection:'column',gap:16}}>
+          <div style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:14,padding:20,flex:1}}>
+            <div style={{fontWeight:700,fontSize:15,marginBottom:12}}>{dan.ordersStatus}</div>
+            {byStatus.map(({s,n})=>(
+              <div key={s} style={{display:'flex',alignItems:'center',gap:10,marginBottom:10}}>
+                <span style={{width:10,height:10,borderRadius:2,background:STATUS_COLORS[s],flexShrink:0}}/>
+                <span style={{flex:1,fontSize:13}}>{dt.statuses[s]||s}</span>
+                <div style={{width:80,height:6,background:'var(--border)',borderRadius:3,overflow:'hidden'}}>
+                  <div style={{height:'100%',width:`${orders.length?(n/orders.length)*100:0}%`,background:STATUS_COLORS[s],borderRadius:3}}/>
+                </div>
+                <span style={{fontSize:13,fontWeight:700,color:'var(--text)',width:30,textAlign:'center'}}>{n}</span>
+                <span style={{fontSize:12,color:'var(--muted)',width:36}}>{orders.length?Math.round(n/orders.length*100):0}%</span>
+              </div>
+            ))}
+          </div>
+          <div style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:14,padding:20,flex:1}}>
+            <div style={{fontWeight:700,fontSize:15,marginBottom:12}}>{dan.payMethods}</div>
+            <DonutChart
+              data={PAYMENTS.map(pm=>orders.filter(o=>o.payment===pm).length||1)}
+              colors={['var(--blue)','var(--green)','var(--purple)']}
+              labels={PAYMENTS}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Monthly Orders Bar */}
+      <div style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:14,padding:24}}>
+        <div style={{fontWeight:700,fontSize:15,marginBottom:16}}>{dan.monthlyOrders}</div>
+        <BarChart data={monthlyOrd} labels={dt.months} color="var(--green)" h={150}/>
+      </div>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════
+// CUSTOMERS PAGE
+// ══════════════════════════════════════════════
+function CustomerModal({c,onClose,onSave,dt,dashLang}){
+  dt=dt||DT.ar;
+  const dcu=dt.customers;
+  const [mode,setMode]=useState('view');
+  const [form,setForm]=useState({name:c?.name||'',phone:c?.phone||'',wilaya:c?.wilaya||''});
+  const [saving,setSaving]=useState(false);
+  if(!c)return null;
+
+  const save=async()=>{
+    if(!form.name)return;
+    setSaving(true);
+    // Update all orders of this customer
+    if(_sbOk()){
+      const url=window.SUPABASE_URL,key=window.SUPABASE_ANON_KEY;
+      await fetch(`${url}/rest/v1/orders?customer_name=eq.${encodeURIComponent(c.name)}`,{
+        method:'PATCH',
+        headers:{'Content-Type':'application/json','apikey':key,'Authorization':'Bearer '+key,'Prefer':'return=minimal'},
+        body:JSON.stringify({customer_name:form.name,customer_phone:form.phone,wilaya:form.wilaya})
+      });
+    }
+    onSave({...c,name:form.name,phone:form.phone,wilaya:form.wilaya});
+    setSaving(false);
+    onClose();
+  };
+
+  return(
+    <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.6)',zIndex:300,display:'flex',alignItems:'center',justifyContent:'center',backdropFilter:'none'}} onClick={onClose}>
+      <div style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:16,padding:28,maxWidth:460,width:'92%',boxShadow:'0 20px 60px rgba(0,0,0,.5)'}} onClick={e=>e.stopPropagation()}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20}}>
+          <div style={{display:'flex',alignItems:'center',gap:12}}>
+            <div style={{width:44,height:44,borderRadius:'50%',background:'rgba(0,170,255,.15)',border:'1px solid rgba(0,170,255,.3)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:20,fontWeight:700,color:'var(--blue)'}}>{c.name[0]}</div>
+            <div>
+              <div style={{fontWeight:800,fontSize:16}}>{mode==='edit'?dcu.editTitle:c.name}</div>
+              <div style={{fontSize:12,color:'var(--muted)'}}>{trW(c.wilaya,dashLang)}</div>
+            </div>
+          </div>
+          <div style={{display:'flex',gap:8}}>
+            <button onClick={()=>setMode(m=>m==='view'?'edit':'view')} style={{background:'rgba(0,170,255,.1)',border:'1px solid rgba(0,170,255,.25)',borderRadius:8,padding:'6px 14px',color:'var(--blue)',cursor:'pointer',fontSize:12,fontWeight:600}}>
+              {mode==='view'?dcu.editBtn:dcu.view}
+            </button>
+            <button onClick={onClose} style={{background:'var(--card2)',border:'1px solid var(--border)',borderRadius:8,padding:'6px 14px',color:'var(--muted)',cursor:'pointer',fontSize:13}}>✕</button>
+          </div>
+        </div>
+
+        {mode==='view'?(
+          <>
+            <div style={{background:'var(--card2)',borderRadius:10,padding:16,marginBottom:16,border:'1px solid var(--border)'}}>
+              {dcu.infoLabels.map((l,idx)=>{const vals=[c.name,c.phone||'—',trW(c.wilaya,dashLang),c.orders,fmtDA(c.total,dashLang),fmtD2(c.lastDate,dashLang)];return(
+                <div key={l} style={{display:'flex',gap:8,marginBottom:8,fontSize:13,alignItems:'center'}}>
+                  <span style={{color:'var(--muted)',width:110,flexShrink:0}}>{l}:</span>
+                  <span style={{color:'var(--text)',fontWeight:600}}>{vals[idx]}</span>
+                </div>
+              );})}
+            </div>
+            <div style={{background:'var(--card2)',borderRadius:10,padding:14,border:'1px solid var(--border)'}}>
+              <div style={{fontSize:12,color:'var(--muted)',marginBottom:10}}>{dcu.recentOrders}</div>
+              {c.recentOrders.slice(0,5).map((o,i)=>(
+                <div key={i} style={{display:'flex',justifyContent:'space-between',fontSize:12,marginBottom:6,color:'var(--text)',gap:8}}>
+                  <span style={{color:'var(--blue)',fontFamily:'monospace',flexShrink:0}}>{o.id}</span>
+                  <span style={{color:'var(--muted)',flexShrink:0}}>{o.date}</span>
+                  <span style={{color:'var(--green)',fontWeight:600,flexShrink:0}}>{fmtDA(o.amount,dashLang)}</span>
+                  <span style={{color:STATUS_COLORS[o.status]||'var(--muted)',fontSize:11,flexShrink:0}}>{dt.statuses[o.status]||o.status}</span>
+                </div>
+              ))}
+            </div>
+          </>
+        ):(
+          <div style={{display:'flex',flexDirection:'column',gap:12}}>
+            {dcu.editFields.map(([label,k])=>(
+              <div key={k}>
+                <label style={{fontSize:12,color:'var(--muted)',display:'block',marginBottom:4}}>{label}</label>
+                <input value={form[k]} onChange={e=>setForm(f=>({...f,[k]:e.target.value}))}
+                  style={{width:'100%',background:'var(--bg)',border:'1px solid var(--border)',borderRadius:8,padding:'10px 12px',color:'var(--text)',fontSize:13,outline:'none'}}/>
+              </div>
+            ))}
+            <div style={{display:'flex',gap:10,marginTop:6}}>
+              <button onClick={save} disabled={saving} style={{flex:1,background:'var(--blue)',border:'none',borderRadius:8,padding:'11px',color:'#fff',fontWeight:700,cursor:'pointer',opacity:saving?.7:1}}>
+                {saving?dt.saving:dcu.saveEdits}
+              </button>
+              <button onClick={()=>setMode('view')} style={{background:'var(--card2)',border:'1px solid var(--border)',borderRadius:8,padding:'11px 18px',color:'var(--muted)',cursor:'pointer'}}>{dt.cancel}</button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function CustomersPage({orders,deleteCustomer,dt,dashLang}){
+  dt=dt||DT.ar;
+  const dcu=dt.customers;
+  const [selectedCustomer,setSelectedCustomer]=useState(null);
+  const [overrides,setOverrides]=useState({});
+  const [confirmDel,setConfirmDel]=useState(null);
+  const onCustomerSave=(updated)=>{
+    setOverrides(prev=>({...prev,[updated.name]:{...updated}}));
+    setSelectedCustomer(null);
+  };
+  const customerMap=orders.reduce((acc,o)=>{
+    if(!acc[o.customer]){acc[o.customer]={name:o.customer,orders:0,total:0,wilaya:o.wilaya,lastDate:o.date,phone:o.phone||'—',email:o.email||'—',recentOrders:[]}}
+    acc[o.customer].orders++;
+    acc[o.customer].total+=o.amount;
+    if(o.date>acc[o.customer].lastDate)acc[o.customer].lastDate=o.date;
+    acc[o.customer].recentOrders.push(o);
+    return acc;
+  },{});
+  const customers=Object.values(customerMap).sort((a,b)=>b.total-a.total);
+
+  return(
+    <div className="page-enter" style={{padding:24}}>
+      <CustomerModal c={selectedCustomer&&{...selectedCustomer,...(overrides[selectedCustomer?.name]||{})}} onClose={()=>setSelectedCustomer(null)} onSave={onCustomerSave} dt={dt} dashLang={dashLang}/>
+      <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:12,marginBottom:20}}>
+        <KpiCard icon={<IcoUsers size={20}/>} title={dcu.totalC} value={customers.length} sub={dcu.uniqueC} color="var(--blue)"/>
+        <KpiCard icon={<IcoPackage size={20}/>} title={dcu.avgOrd} value={customers.length?(orders.length/customers.length).toFixed(1):'—'} sub={dcu.perC} color="var(--green)"/>
+        <KpiCard icon={<IcoCash size={20}/>} title={dcu.topSpend} value={fmtDA(customers[0]?.total||0,dashLang)} sub={customers[0]?.name||''} color="var(--purple)"/>
+      </div>
+      <div style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:14,overflow:'hidden'}}>
+        <table style={{width:'100%',borderCollapse:'collapse',fontSize:13}}>
+          <thead>
+            <tr style={{background:'var(--card2)',borderBottom:'1px solid var(--border)'}}>
+              {dcu.headers.map(h=>(
+                <th key={h} style={{padding:'12px 14px',textAlign:'right',color:'var(--muted)',fontWeight:600,fontSize:12}}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {customers.map((c,i)=>(
+              <tr key={c.name} style={{borderBottom:'1px solid rgba(30,45,74,.4)',transition:'background .15s'}}
+                onMouseEnter={e=>e.currentTarget.style.background='rgba(0,170,255,.04)'}
+                onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
+                <td style={{padding:'12px 14px'}}>
+                  <div style={{display:'flex',alignItems:'center',gap:10}}>
+                    <div style={{width:34,height:34,borderRadius:'50%',background:'rgba(0,170,255,.15)',border:'1px solid rgba(0,170,255,.3)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:15,fontWeight:700,color:'var(--blue)',flexShrink:0}}>{c.name[0]}</div>
+                    <span style={{fontWeight:600}}>{c.name}</span>
+                  </div>
+                </td>
+                <td style={{padding:'12px 14px'}}><bdi dir="ltr" style={{color:'var(--muted)',fontSize:12}}>{c.phone}</bdi></td>
+                <td style={{padding:'12px 14px',color:'var(--muted)'}}>{trW(c.wilaya,dashLang)}</td>
+                <td style={{padding:'12px 14px',fontWeight:700,color:'var(--blue)'}}>{c.orders}</td>
+                <td style={{padding:'12px 14px',fontWeight:700,color:'var(--green)'}}>{fmtDA(c.total,dashLang)}</td>
+                <td style={{padding:'12px 14px',color:'var(--muted)',fontSize:12}}>{fmtD2(c.lastDate,dashLang)}</td>
+                <td style={{padding:'12px 14px'}}><span style={{fontSize:14}}>{i===0?'🥇':i===1?'🥈':i===2?'🥉':'👤'}</span></td>
+                <td style={{padding:'8px 14px'}}>
+                  <div style={{display:'flex',gap:6,alignItems:'center'}}>
+                    <button onClick={()=>setSelectedCustomer(c)} style={{background:'rgba(0,221,170,.1)',border:'1px solid rgba(0,221,170,.25)',borderRadius:6,padding:'5px 10px',color:'var(--green)',cursor:'pointer',fontSize:11,fontWeight:600,whiteSpace:'nowrap'}}>{dcu.details}</button>
+                    {confirmDel===c.name?(
+                      <React.Fragment>
+                        <button onClick={()=>{deleteCustomer&&deleteCustomer(c.name);setConfirmDel(null);}} style={{background:'rgba(255,68,68,.2)',border:'1px solid rgba(255,68,68,.5)',borderRadius:6,padding:'5px 10px',color:'var(--red)',cursor:'pointer',fontSize:11,fontWeight:700,whiteSpace:'nowrap'}}>✓ {dt.delete}</button>
+                        <button onClick={()=>setConfirmDel(null)} style={{background:'var(--card2)',border:'1px solid var(--border)',borderRadius:6,padding:'5px 8px',color:'var(--muted)',cursor:'pointer',fontSize:11}}>✕</button>
+                      </React.Fragment>
+                    ):(
+                      <button onClick={()=>setConfirmDel(c.name)} style={{background:'transparent',border:'1px solid rgba(255,68,68,.25)',borderRadius:6,padding:'5px 8px',color:'var(--red)',cursor:'pointer',fontSize:11,opacity:.7}}>{dt.delete}</button>
+                    )}
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════
+// SETTINGS PAGE
+// ══════════════════════════════════════════════
+const SETTINGS_KEY='ts_settings';
+const DEFAULT_SETTINGS={name:'TechStore.dz',email:'dzonestore@gmail.com',phone:'+213 555 123 456',address:'وهران، الجزائر',delivery:'مجاني',minOrder:'5000',minFreeShip:'5000',currency:'دج'};
+const loadSettings=()=>{try{const s=localStorage.getItem(SETTINGS_KEY);return s?{...DEFAULT_SETTINGS,...JSON.parse(s)}:DEFAULT_SETTINGS;}catch{return DEFAULT_SETTINGS;}};
+
+function SettingsPage({dt,authUser,dashLang}){
+  dt=dt||DT.ar;
+  const dst=dt.settings;
+  const [form,setForm]=useState(loadSettings);
+  const [saved,setSaved]=useState(false);
+  const save=()=>{
+    localStorage.setItem(SETTINGS_KEY,JSON.stringify(form));
+    setSaved(true);
+    setTimeout(()=>setSaved(false),2000);
+  };
+  const fi=(k)=>(
+    <div>
+      <label style={{fontSize:12,color:'var(--muted)',display:'block',marginBottom:6}}>{dst.fLabels[k]}</label>
+      <input value={form[k]} onChange={e=>setForm(f=>({...f,[k]:e.target.value}))} style={{width:'100%',background:'var(--card2)',border:'1px solid var(--border)',borderRadius:8,padding:'10px 14px',color:'var(--text)',fontSize:13,outline:'none'}}/>
+    </div>
+  );
+  return(
+    <div className="page-enter" style={{padding:24,maxWidth:800}}>
+      <div style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:14,padding:28,marginBottom:20}}>
+        <div style={{fontWeight:700,fontSize:16,marginBottom:20,color:'var(--blue)'}}>{dst.storeInfo}</div>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16}}>
+          {fi('name')}{fi('email')}{fi('phone')}{fi('address')}{fi('currency')}{fi('minOrder')}
+        </div>
+      </div>
+      <div style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:14,padding:28,marginBottom:20}}>
+        <div style={{fontWeight:700,fontSize:16,marginBottom:20,color:'var(--blue)'}}>{dst.delivery}</div>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16}}>
+          <div>
+            <label style={{fontSize:12,color:'var(--muted)',display:'block',marginBottom:6}}>{dst.shippingPolicy}</label>
+            <select value={form.delivery} onChange={e=>setForm(f=>({...f,delivery:e.target.value}))} style={{width:'100%',background:'var(--card2)',border:'1px solid var(--border)',borderRadius:8,padding:'10px 14px',color:'var(--text)',fontSize:13,outline:'none'}}>
+              {dst.shippingOpts.map(([val,label])=><option key={val} value={val}>{label}</option>)}
+            </select>
+          </div>
+          {fi('minFreeShip')}
+        </div>
+      </div>
+      {authUser?.role==='admin'&&<UsersSection dt={dt} authUser={authUser}/>}
+      {authUser?.role==='admin'&&(
+        <div style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:14,padding:24,marginBottom:20}}>
+          <div style={{fontWeight:700,fontSize:15,color:'var(--orange)',marginBottom:10}}>🗄️ {dashLang==='fr'?'Migration base de données':'ترقية قاعدة البيانات'}</div>
+          <div style={{fontSize:13,color:'var(--muted)',marginBottom:12}}>{dashLang==='fr'?'Pour activer la fonctionnalité de remise sur les produits, exécutez cette requête SQL dans Supabase (Table Editor → SQL Editor) :':'لتفعيل ميزة التخفيض على المنتجات، قم بتنفيذ هذا الاستعلام في Supabase (SQL Editor):'}</div>
+          <pre style={{background:'var(--bg)',border:'1px solid var(--border)',borderRadius:8,padding:'12px 16px',fontSize:12,color:'var(--blue)',overflowX:'auto',margin:0,direction:'ltr',textAlign:'left'}}>{'ALTER TABLE products ADD COLUMN IF NOT EXISTS old_price NUMERIC DEFAULT NULL;'}</pre>
+        </div>
+      )}
+      <button onClick={save} style={{background:saved?'var(--green)':'var(--blue)',border:'none',borderRadius:10,padding:'12px 28px',color:'#fff',fontSize:15,fontWeight:700,cursor:'pointer',transition:'background .3s'}}>
+        {saved?dst.savedBtn:dst.saveBtn}
+      </button>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════
+// APP
+// ══════════════════════════════════════════════
+const PAGE_TITLES={overview:'نظرة عامة',orders:'إدارة الطلبات',products:'إدارة المنتجات',inventory:'إدارة المخزون',analytics:'الإحصائيات والتحليلات',customers:'إدارة الزبائن',settings:'الإعدادات'};
+
+function App(){
+  // ─── Auth ───────────────────────────────────────────
+  const [authUser,setAuthUser]=useState(()=>{try{return JSON.parse(sessionStorage.getItem(DASH_SESSION_KEY));}catch{return null;}});
+  const [dashTheme,setDashTheme]=useState(()=>localStorage.getItem('dash_theme')||'dark');
+  const login=useCallback((u)=>{setAuthUser(u);sessionStorage.setItem(DASH_SESSION_KEY,JSON.stringify(u));},[]);
+  const logout=useCallback(()=>{setAuthUser(null);sessionStorage.removeItem(DASH_SESSION_KEY);},[]);
+  const [active,setActive]=useState('overview');
+  const [invInitFilter,setInvInitFilter]=useState(null);
+  const onNavigate=useCallback((page,opts={})=>{
+    if(opts.invFilter!==undefined)setInvInitFilter(opts.invFilter);
+    setActive(page);
+  },[]);
+  const [collapsed,setCollapsed]=useState(false);
+  const [dashLang,setDashLang]=useState(()=>localStorage.getItem('dash_lang')||'ar');
+  const [orders,setOrders]=useState(()=>_sbOk()?[]:ORDERS);
+  const [sbProducts,setSbProducts]=useState([]);
+  const [sbLoaded,setSbLoaded]=useState(!_sbOk());
+
+  // refs for real-time access inside callbacks
+  const ordersRef=useRef(null);
+  const sbProductsRef=useRef(null);
+
+  // Sync lang to html dir + localStorage
+  useEffect(()=>{
+    document.documentElement.lang=dashLang;
+    document.documentElement.dir=dashLang==='ar'?'rtl':'ltr';
+    localStorage.setItem('dash_lang',dashLang);
+  },[dashLang]);
+
+  // Sync theme
+  useEffect(()=>{
+    document.documentElement.setAttribute('data-theme',dashTheme);
+    localStorage.setItem('dash_theme',dashTheme);
+  },[dashTheme]);
+
+  useEffect(()=>{
+    if(!_sbOk())return;
+
+    // Initial fetch via REST API (always works regardless of SDK state)
+    const fbTimer=setTimeout(()=>setSbLoaded(true),5000);
+    sbFetch('orders','order=created_at.desc').then(data=>{
+      clearTimeout(fbTimer);
+      if(data){const del=_getDelIds();const filtered=data.filter(o=>!del.includes(o.id));setOrders(filtered.length>0?filtered.map(mapOrder):[]);}
+      setSbLoaded(true);
+    }).catch(()=>{clearTimeout(fbTimer);setSbLoaded(true);});
+    sbFetch('products','order=id.asc').then(data=>{
+      if(data&&data.length>0)setSbProducts(data);
+    });
+
+    // Real-time updates via SDK channel
+    if(!sb)return;
+    const ch=sb.channel('dash-rt')
+      .on('postgres_changes',{event:'INSERT',schema:'public',table:'orders'},p=>{
+        if(!_getDelIds().includes(p.new.id))setOrders(prev=>[mapOrder(p.new),...prev]);
+      })
+      .on('postgres_changes',{event:'UPDATE',schema:'public',table:'orders'},p=>{
+        if(!_getDelIds().includes(p.new.id))setOrders(prev=>prev.map(o=>(o._real_id===p.new.id)?mapOrder(p.new):o));
+        else setOrders(prev=>prev.filter(o=>o._real_id!==p.new.id));
+      })
+      .on('postgres_changes',{event:'DELETE',schema:'public',table:'orders'},p=>{
+        setOrders(prev=>prev.filter(o=>o._real_id!==p.old.id));
+      })
+      .on('postgres_changes',{event:'INSERT',schema:'public',table:'products'},p=>{
+        setSbProducts(prev=>[...prev,p.new]);
+      })
+      .on('postgres_changes',{event:'UPDATE',schema:'public',table:'products'},p=>{
+        setSbProducts(prev=>prev.map(x=>x.id===p.new.id?p.new:x));
+      })
+      .on('postgres_changes',{event:'DELETE',schema:'public',table:'products'},p=>{
+        setSbProducts(prev=>prev.filter(x=>x.id!==p.old.id));
+      })
+      .subscribe();
+    return()=>sb.removeChannel(ch);
+  },[]);
+
+  const _STOCK_STATUSES=['مكتمل','مشحون'];
+  const updateOrderStatus=useCallback(async(rawId,status)=>{
+    const order=(ordersRef.current||[]).find(o=>o._real_id===rawId||o.id===rawId);
+    const prevStatus=order?.status;
+    // Deduct stock only on first transition to مكتمل/مشحون (not if already in a stock-deducted state)
+    if(_STOCK_STATUSES.includes(status)&&!_STOCK_STATUSES.includes(prevStatus)){
+      if(order?.items){
+        const url2=window.SUPABASE_URL,key2=window.SUPABASE_ANON_KEY;
+        for(const item of order.items){
+          const prod=(sbProductsRef.current||[]).find(p=>(item.product_id&&p.id===item.product_id)||p.name===item.name);
+          if(prod){
+            const newStock=Math.max(0,(prod.stock||0)-(item.qty||1));
+            setSbProducts(prev=>prev.map(p=>p.id===prod.id?{...p,stock:newStock,in_stock:newStock>0}:p));
+            if(_sbOk())fetch(`${url2}/rest/v1/products?id=eq.${prod.id}`,{
+              method:'PATCH',
+              headers:{'Content-Type':'application/json','apikey':key2,'Authorization':'Bearer '+key2,'Prefer':'return=minimal'},
+              body:JSON.stringify({stock:newStock,in_stock:newStock>0})
+            }).catch(()=>{});
+          }
+        }
+      }
+    }
+    if(_sbOk()&&typeof rawId==='number'){
+      const url=window.SUPABASE_URL;
+      const key=window.SUPABASE_ANON_KEY;
+      await fetch(`${url}/rest/v1/orders?id=eq.${rawId}`,{
+        method:'PATCH',
+        headers:{'Content-Type':'application/json','apikey':key,'Authorization':'Bearer '+key,'Prefer':'return=minimal'},
+        body:JSON.stringify({status})
+      });
+    }
+    setOrders(prev=>prev.map(o=>(o._real_id===rawId||o.id===rawId)?{...o,status}:o));
+  },[setSbProducts]);
+
+  // Centralized product mutations (single source of truth for all pages)
+  const patchProduct=useCallback((id,delta)=>{
+    setSbProducts(prev=>prev.map(p=>p.id===id?{...p,...delta}:p));
+  },[]);
+  const addProductSb=useCallback((p)=>{
+    setSbProducts(prev=>[...prev,p]);
+  },[]);
+  const delProductSb=useCallback((id)=>{
+    setSbProducts(prev=>prev.filter(p=>p.id!==id));
+  },[]);
+
+  const _sbDelete=async(id)=>{
+    const url=window.SUPABASE_URL,key=window.SUPABASE_ANON_KEY;
+    const res=await fetch(`${url}/rest/v1/orders?id=eq.${id}`,{
+      method:'DELETE',
+      headers:{'apikey':key,'Authorization':'Bearer '+key,'Prefer':'return=minimal'}
+    });
+    if(!res.ok){const txt=await res.text().catch(()=>'');console.error('Supabase DELETE failed:',res.status,txt);}
+    return res.ok;
+  };
+
+  const deleteOrder=useCallback(async(rawId)=>{
+    _addDelId(rawId);
+    if(_sbOk()&&rawId!=null){
+      await _sbDelete(rawId).catch(()=>{});
+    }
+    setOrders(prev=>prev.filter(o=>o._real_id!==rawId&&o.id!==rawId));
+  },[]);
+
+  const deleteCustomer=useCallback(async(customerName)=>{
+    const toDelete=(ordersRef.current||[]).filter(o=>o.customer===customerName);
+    toDelete.forEach(o=>{if(o._real_id!=null)_addDelId(o._real_id);});
+    if(_sbOk()){
+      const realIds=toDelete.map(o=>o._real_id).filter(id=>id!=null);
+      await Promise.all(realIds.map(id=>_sbDelete(id).catch(()=>{})));
+    }
+    setOrders(prev=>prev.filter(o=>o.customer!==customerName));
+  },[]);
+
+  // Products: same source as the store, with computed sold from real orders
+  const sbOrders=useMemo(()=>orders.filter(o=>Array.isArray(o.items)),[orders]);
+  const dashProducts=useMemo(()=>
+    sbProducts.length>0 ? sbProducts.map(p=>mapDashProduct(p,sbOrders)) : PRODUCTS_DATA
+  ,[sbProducts,sbOrders]);
+
+  ordersRef.current=orders;
+  sbProductsRef.current=sbProducts;
+
+  const dt=DT[dashLang||'ar'];
+  const sideW=collapsed?64:240;
+  const op={orders,updateOrderStatus,deleteOrder,deleteCustomer,dashLang,dt};
+
+  const pages={
+    overview:<OverviewPage {...op} dashProducts={dashProducts} onNavigate={onNavigate}/>,
+    orders:<OrdersPage {...op}/>,
+    products:<ProductsPage dashProducts={dashProducts} dashLang={dashLang} dt={dt} onPatch={patchProduct} onAdd={addProductSb} onDel={delProductSb}/>,
+    inventory:<InventoryPage dashProducts={dashProducts} dt={dt} onPatch={patchProduct} invInitFilter={invInitFilter} setInvInitFilter={setInvInitFilter}/>,
+    analytics:<AnalyticsPage {...op}/>,
+    customers:<CustomersPage {...op}/>,
+    settings:<SettingsPage dt={dt} authUser={authUser} dashLang={dashLang}/>,
+  };
+
+  // Gate: show login if not authenticated
+  if(!authUser) return <LoginPage onLogin={login} dashLang={dashLang}/>;
+
+  return(
+    <div style={{display:'flex',minHeight:'100vh',background:'var(--bg)'}}>
+      <div style={{position:'fixed',inset:0,background:'var(--bg)',zIndex:9999,display:'flex',alignItems:'center',justifyContent:'center',transition:'opacity 0.4s ease',opacity:sbLoaded?0:1,pointerEvents:sbLoaded?'none':'all'}}>
+        <div style={{width:38,height:38,border:'3px solid rgba(255,255,255,0.07)',borderTopColor:'var(--blue)',borderRadius:'50%',animation:'spin 0.75s linear infinite'}}/>
+      </div>
+      <Sidebar active={active} setActive={setActive} collapsed={collapsed} setCollapsed={setCollapsed} dashLang={dashLang} role={authUser.role}/>
+      <main style={{marginRight:dashLang==='fr'?0:sideW,marginLeft:dashLang==='fr'?sideW:0,flex:1,minHeight:'100vh',display:'flex',flexDirection:'column',transition:`margin var(--dur-enter) var(--ease-out)`}}>
+        <TopBar title={dt.pages[active]} orders={orders} dashLang={dashLang} setDashLang={setDashLang} authUser={authUser} onLogout={logout} dashTheme={dashTheme} setDashTheme={setDashTheme}/>
+        <div style={{flex:1,overflowY:'auto'}}>
+          {pages[active]}
+        </div>
+      </main>
+    </div>
+  );
+}
+
+class ErrorBoundary extends React.Component{
+  constructor(p){super(p);this.state={err:null};}
+  static getDerivedStateFromError(e){return{err:e};}
+  componentDidCatch(e,i){console.error('React error:',e,i);}
+  render(){
+    if(this.state.err)return(
+      <div style={{color:'#ff4444',background:'#1a0505',border:'1px solid rgba(255,68,68,.25)',borderRadius:10,padding:24,margin:24,fontFamily:'monospace',fontSize:13,whiteSpace:'pre-wrap'}}>
+        <b>خطأ في عرض الصفحة</b>{'\n'}{String(this.state.err)}{'\n'}{this.state.err?.stack||''}
+      </div>
+    );
+    return this.props.children;
+  }
+}
+
+const root=ReactDOM.createRoot(document.getElementById('root'));
+root.render(<ErrorBoundary><App/></ErrorBoundary>);
+</script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

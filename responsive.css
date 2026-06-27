@@ -1,0 +1,459 @@
+/* ═══════════════════════════════════════════════════════
+   DZ ONE — Responsive Layout
+   breakpoints:  tablet ≤ 1100px  |  mobile ≤ 768px  |  xs ≤ 480px
+═══════════════════════════════════════════════════════ */
+
+/* Prevent horizontal overflow (critical for RTL — body alone is not enough) */
+html {
+  overflow-x: hidden;
+  max-width: 100%;
+}
+body {
+  overflow-x: hidden;
+  max-width: 100%;
+}
+
+/* ── Hamburger button (hidden on desktop) ─────────────── */
+#nav-hamburger {
+  display: none !important;
+  width: 38px; height: 38px;
+  border: 1px solid rgba(255,255,255,0.14);
+  border-radius: 9px;
+  background: transparent;
+  cursor: pointer; padding: 0;
+  align-items: center; justify-content: center;
+  flex-shrink: 0; color: #94A3B8;
+  transition: border-color 0.2s, color 0.2s;
+}
+#nav-hamburger:hover { border-color: rgba(37,99,235,0.5); color: #60A5FA; }
+html.dz-light #nav-hamburger { border-color: rgba(0,0,0,0.15); color: #374151; }
+
+/* ── Mobile overlay menu ──────────────────────────────── */
+#nav-mobile-menu {
+  display: none;
+  position: fixed;
+  top: 68px; left: 0; right: 0;
+  background: rgba(9,18,32,0.97);
+  backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+  z-index: 998;
+  padding: 10px 16px 20px;
+  flex-direction: column; gap: 2px;
+  animation: dz-slide-down 0.2s ease;
+}
+#nav-mobile-menu.open { display: flex; }
+
+@keyframes dz-slide-down {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+#nav-mobile-menu a {
+  display: block;
+  font-size: 15px; font-weight: 500;
+  color: #94A3B8; text-decoration: none;
+  padding: 12px 14px; border-radius: 10px;
+  transition: all 0.15s;
+  font-family: 'Cairo', sans-serif;
+}
+#nav-mobile-menu a:hover { background: rgba(37,99,235,0.1); color: #60A5FA; }
+html.dz-light #nav-mobile-menu { background: rgba(238,242,255,0.97); border-bottom-color: rgba(37,99,235,0.12); }
+html.dz-light #nav-mobile-menu a { color: #374151; }
+html.dz-light #nav-mobile-menu a:hover { background: rgba(37,99,235,0.08); color: #1E3A8A; }
+
+/* ═══════════════════════════════
+   TABLET  ≤ 1100px
+═══════════════════════════════ */
+@media (max-width: 1100px) {
+
+  #main-nav { padding-left: 28px !important; padding-right: 28px !important; }
+
+  #featured-grid, #deals-grid, #store-grid, #wishlist-grid {
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 16px !important;
+  }
+
+  /* 4-col generic grids (why-us, categories, stats, etc.) */
+  [style*="grid-template-columns:repeat(4,1fr)"] {
+    grid-template-columns: repeat(3, 1fr) !important;
+  }
+
+  /* 7-col categories grid → 4 cols */
+  [style*="grid-template-columns:repeat(7,1fr)"] {
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 10px !important;
+  }
+
+  /* 3-col grids (team, etc.) → 2 cols on tablet */
+  [style*="grid-template-columns:repeat(3,1fr)"] {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 18px !important;
+  }
+
+  /* Builder sidebar: stack on tablet */
+  [style*="grid-template-columns:1fr 380px"] {
+    grid-template-columns: 1fr !important;
+    gap: 24px !important;
+  }
+
+  /* Footer 4-col → 2-col */
+  [style*="grid-template-columns:2fr 1fr 1fr 1.2fr"] {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 36px !important;
+  }
+
+  /* Section horizontal padding */
+  [style*="padding:104px 60px"],
+  [style*="padding:100px 60px"],
+  [style*="padding:80px 60px"],
+  [style*="padding:76px 60px"] {
+    padding-left: 36px !important;
+    padding-right: 36px !important;
+  }
+}
+
+/* ═══════════════════════════════
+   MOBILE  ≤ 768px
+═══════════════════════════════ */
+@media (max-width: 768px) {
+
+  /* ── Navbar ──────────────────── */
+  #main-nav {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+    height: 60px !important;
+  }
+  #nav-links { display: none !important; }
+  #nav-hamburger { display: flex !important; }
+  #nav-mobile-menu { top: 60px !important; }
+
+  /* Reduce gap in right-controls group */
+  #main-nav [style*="gap:12px"][style*="align-items:center"] {
+    gap: 7px !important;
+  }
+  /* Hide lang switcher on mobile to save space */
+  #main-nav [style*="gap:5px"][style*="font-size:13px"] {
+    display: none !important;
+  }
+
+  /* ── Section padding ─────────── */
+  #hero-section  {
+    padding-left: 20px !important;
+    padding-right: 20px !important;
+    padding-top: 88px !important;
+    padding-bottom: 60px !important;
+  }
+  #stats-section {
+    padding-left: 20px !important;
+    padding-right: 20px !important;
+    padding-top: 40px !important;
+    padding-bottom: 40px !important;
+  }
+  #deals-section {
+    padding-left: 20px !important;
+    padding-right: 20px !important;
+  }
+  #whyus-section {
+    padding-left: 20px !important;
+    padding-right: 20px !important;
+    padding-top: 52px !important;
+    padding-bottom: 52px !important;
+  }
+  #main-footer {
+    padding-left: 20px !important;
+    padding-right: 20px !important;
+    padding-top: 44px !important;
+  }
+  #filter-bar    { padding-left: 14px !important; padding-right: 14px !important; }
+
+  /* Generic section/div horizontal padding — uses [style*] without element type */
+  /* All sections/divs using 60px horizontal padding */
+  [style*="padding:104px 60px"],
+  [style*="padding:100px 60px"],
+  [style*="padding:80px 60px"],
+  [style*="padding:76px 60px"],
+  [style*="padding:48px 60px"],
+  [style*="padding:40px 60px"],
+  [style*="padding:36px 60px"],
+  [style*="padding:20px 60px"],
+  [style*="padding:0 60px"],
+  [style*="padding:100px 60px 0"] {
+    padding-left: 20px !important;
+    padding-right: 20px !important;
+  }
+
+  /* track page hero */
+  [style*="padding:120px 60px 80px"] {
+    padding-top: 88px !important;
+    padding-bottom: 48px !important;
+    padding-left: 20px !important;
+    padding-right: 20px !important;
+  }
+
+  /* ── Hero / large section padding with 130px top ── */
+  [style*="padding:130px 60px"] {
+    padding-left: 20px !important;
+    padding-right: 20px !important;
+    padding-top: 88px !important;
+  }
+
+  /* ── Hero section text ───────── */
+  h1[style*="font-size:88px"],
+  div[style*="font-size:88px"],
+  span[style*="font-size:88px"] {
+    font-size: 36px !important;
+    line-height: 1.15 !important;
+    letter-spacing: -0.5px !important;
+  }
+
+  /* Hero subtitle badge */
+  #hero-section [style*="font-size:13px"][style*="letter-spacing"] {
+    font-size: 11px !important;
+  }
+
+  /* Hero description max-width */
+  #hero-section p[style*="max-width:560px"],
+  p[style*="max-width:580px"] {
+    max-width: 100% !important;
+    font-size: 14px !important;
+  }
+
+  /* Hero buttons */
+  .btn-hero-primary, .btn-hero-secondary {
+    padding: 12px 22px !important;
+    font-size: 14px !important;
+  }
+
+  /* ── Section headings ─────────── */
+  h1[style*="font-size:88px"],
+  h1[style*="font-size:72px"],
+  div[style*="font-size:72px"]   { font-size: 34px !important; line-height: 1.12 !important; }
+
+  h1[style*="font-size:52px"],
+  div[style*="font-size:52px"]   { font-size: 30px !important; }
+
+  h1[style*="font-size:50px"],
+  div[style*="font-size:50px"]   { font-size: 28px !important; }
+
+  h1[style*="font-size:42px"],
+  h2[style*="font-size:42px"],
+  div[style*="font-size:42px"]   { font-size: 26px !important; }
+
+  h2[style*="font-size:38px"],
+  div[style*="font-size:38px"]   { font-size: 22px !important; }
+
+  h2[style*="font-size:36px"],
+  div[style*="font-size:36px"]   { font-size: 20px !important; }
+
+  h2[style*="font-size:32px"],
+  div[style*="font-size:32px"]   { font-size: 20px !important; }
+
+  h2[style*="font-size:30px"],
+  h3[style*="font-size:30px"],
+  div[style*="font-size:30px"]   { font-size: 18px !important; }
+
+  div[style*="font-size:48px"]   { font-size: 32px !important; line-height: 1.1 !important; }
+
+  h3[style*="font-size:28px"],
+  div[style*="font-size:28px"]   { font-size: 18px !important; }
+
+  h3[style*="font-size:24px"],
+  div[style*="font-size:24px"]   { font-size: 17px !important; }
+
+  /* ── Section headers: allow wrap to prevent horizontal overflow ── */
+  /* Exclude #main-nav which has its own height constraint */
+  [style*="justify-content:space-between"]:not(nav):not(#main-nav) {
+    flex-wrap: wrap !important;
+    row-gap: 10px !important;
+  }
+  /* Reduce large bottom margins on section headers */
+  [style*="margin-bottom:50px"] { margin-bottom: 24px !important; }
+  [style*="margin-bottom:64px"] { margin-bottom: 32px !important; }
+  [style*="margin-bottom:62px"] { margin-bottom: 28px !important; }
+
+  /* ── Product grids → 2-col ────── */
+  #featured-grid, #deals-grid, #store-grid, #wishlist-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 12px !important;
+  }
+
+  /* ── Stats grid → 2-col ─────── */
+  [style*="grid-template-columns:repeat(4,1fr)"] {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 14px !important;
+  }
+
+  /* ── 7-col categories → 4-col ── */
+  [style*="grid-template-columns:repeat(7,1fr)"] {
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 8px !important;
+  }
+
+  /* Category cards in grid: reduce padding */
+  [style*="grid-template-columns:repeat(7,1fr)"] > div,
+  [style*="grid-template-columns:repeat(4,1fr)"] .cat-card,
+  [style*="grid-template-columns:repeat(4,1fr)"] .cat-card-amber,
+  [style*="grid-template-columns:repeat(4,1fr)"] .cat-card-sky {
+    padding: 14px 6px !important;
+  }
+
+  /* Category cards second row (flex row with fixed widths) */
+  [style*="justify-content:center"][style*="gap:14px"] {
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+  }
+  [style*="width:168px"] {
+    width: auto !important;
+    flex: 1 1 100px !important;
+    min-width: 90px !important;
+  }
+
+  /* ── Footer 4-col → 2-col ──── */
+  [style*="grid-template-columns:2fr 1fr 1fr 1.2fr"] {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 20px !important;
+  }
+
+  /* ── Builder: content + sidebar → 1-col ── */
+  [style*="grid-template-columns:1fr 380px"] {
+    grid-template-columns: 1fr !important;
+    gap: 24px !important;
+  }
+  /* Builder sidebar: remove sticky, natural flow */
+  [style*="grid-template-columns:1fr 380px"] > div[style*="position:sticky"] {
+    position: relative !important;
+    top: auto !important;
+  }
+
+  /* ── 3-col grids (team, related) → 1-col ── */
+  [style*="grid-template-columns:repeat(3,1fr)"] {
+    grid-template-columns: 1fr !important;
+    gap: 16px !important;
+  }
+
+  /* ── Product detail: 2-col → 1-col ── */
+  [style*="grid-template-columns:45% 55%"] {
+    grid-template-columns: 1fr !important;
+    gap: 24px !important;
+  }
+  /* Product image area height on mobile */
+  [style*="height:380px"] { height: 260px !important; }
+
+  /* ── Track / info grids → 1-col ── */
+  [style*="grid-template-columns:1fr 1fr"] {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+
+  /* ── Why-us cards ────────────── */
+  [style*="padding:42px 28px"] {
+    padding: 22px 16px !important;
+  }
+
+  /* ── Product card internals ──── */
+  [style*="padding:20px 22px"] { padding: 14px 14px !important; }
+
+  /* Card image height */
+  [style*="height:196px"] { height: 150px !important; }
+  .dz-card-img { height: 150px !important; }
+
+  /* ── Store filter bar controls ── */
+  #filter-bar > div { gap: 8px !important; }
+
+  /* Search + sort row: allow shrink and take full width when wrapped */
+  #filter-bar [style*="flex-shrink:0"] {
+    flex-shrink: 1 !important;
+    width: 100% !important;
+  }
+  #search-input { width: 100% !important; flex: 1 !important; }
+  #sort-select  { min-width: 130px !important; }
+
+  /* ── Checkout modal ─────────────────────────────────── */
+  [style*="grid-template-columns:1.2fr 0.8fr"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Modal outer: start from top so close button is reachable */
+  #checkout-modal {
+    align-items: flex-start !important;
+    padding: 10px !important;
+  }
+  /* Modal inner box: full width, no overflow-hidden that clips content */
+  #checkout-modal > div {
+    border-radius: 16px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+  /* Form column: tighter padding + bottom border instead of left border */
+  #checkout-modal > div > div:first-child {
+    padding: 20px 16px !important;
+    border-left: none !important;
+    border-bottom: 1px solid rgba(255,255,255,0.07) !important;
+  }
+  /* Order summary column */
+  #checkout-modal > div > div:last-child {
+    padding: 20px 16px !important;
+  }
+  /* Name + phone row: 2 columns → 1 column inside modal */
+  #checkout-form > div[style*="grid-template-columns:1fr 1fr"] {
+    grid-template-columns: 1fr !important;
+    gap: 0 !important;
+  }
+}
+
+/* ═══════════════════════════════
+   SMALL MOBILE  ≤ 480px
+═══════════════════════════════ */
+@media (max-width: 480px) {
+
+  /* Footer: 2-col → 1-col */
+  [style*="grid-template-columns:2fr 1fr 1fr 1.2fr"] {
+    grid-template-columns: 1fr !important;
+    gap: 18px !important;
+  }
+
+  /* 7-col categories → 3-col */
+  [style*="grid-template-columns:repeat(7,1fr)"] {
+    grid-template-columns: repeat(3, 1fr) !important;
+  }
+
+  /* Hero heading even smaller */
+  h1[style*="font-size:88px"],
+  div[style*="font-size:88px"],
+  span[style*="font-size:88px"] {
+    font-size: 30px !important;
+  }
+
+  /* Hero buttons: stack them */
+  .btn-hero-primary, .btn-hero-secondary {
+    padding: 11px 18px !important;
+    font-size: 13px !important;
+  }
+
+  /* Product grids: keep 2-col, tighter gap */
+  #featured-grid, #deals-grid, #store-grid, #wishlist-grid {
+    gap: 10px !important;
+  }
+
+  /* Store filter bar: column layout */
+  #filter-bar > div {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 8px !important;
+  }
+
+  /* Card images smaller */
+  [style*="height:196px"],
+  .dz-card-img { height: 130px !important; }
+
+  /* Product card padding */
+  [style*="padding:20px 22px"] { padding: 10px 12px !important; }
+
+  /* Product detail image */
+  [style*="height:380px"] { height: 220px !important; }
+
+  /* Stats: 2-col on xs */
+  [style*="grid-template-columns:repeat(4,1fr)"] {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}

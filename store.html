@@ -1,0 +1,384 @@
+﻿<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>المتجر — Dz One</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #070B12; overflow-x: hidden; }
+
+  @keyframes fadeInUp { from { opacity: 0; transform: translateY(52px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes fadeIn   { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes revealUp { from { opacity: 0; transform: translateY(40px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes shimmer  { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+
+  .prod-card-blue:hover   { transform: translateY(-8px); box-shadow: 0 26px 64px rgba(37,99,235,0.2) !important; }
+  .prod-card-red:hover    { transform: translateY(-8px); box-shadow: 0 26px 64px rgba(239,68,68,0.15) !important; }
+  .prod-card-indigo:hover { transform: translateY(-8px); box-shadow: 0 26px 64px rgba(99,102,241,0.17) !important; }
+  .prod-card-green:hover  { transform: translateY(-8px); box-shadow: 0 26px 64px rgba(52,211,153,0.12) !important; }
+  .prod-card-purple:hover { transform: translateY(-8px); box-shadow: 0 26px 64px rgba(139,92,246,0.17) !important; }
+  .prod-card-orange:hover { transform: translateY(-8px); box-shadow: 0 26px 64px rgba(251,146,60,0.17) !important; }
+  .prod-card-sky:hover    { transform: translateY(-8px); box-shadow: 0 26px 64px rgba(56,189,248,0.14) !important; }
+  .prod-card-amber:hover  { transform: translateY(-8px); box-shadow: 0 26px 64px rgba(251,191,36,0.14) !important; }
+  .prod-card-gray:hover   { transform: translateY(-8px); box-shadow: 0 26px 64px rgba(148,163,184,0.12) !important; }
+  .prod-card-blue,.prod-card-red,.prod-card-indigo,.prod-card-green,.prod-card-purple,
+  .prod-card-orange,.prod-card-sky,.prod-card-amber,.prod-card-gray { transition: transform 0.32s ease, box-shadow 0.32s ease; }
+
+  .btn-cart:hover  { box-shadow: 0 6px 24px rgba(37,99,235,0.55) !important; }
+  .btn-deal:hover  { box-shadow: 0 6px 24px rgba(239,68,68,0.5) !important; }
+  .btn-cart, .btn-deal { transition: box-shadow 0.25s; }
+  .nav-link { transition: all 0.2s; }
+  .nav-link:hover { color: #fff !important; background: rgba(255,255,255,0.05) !important; }
+  .icon-action { transition: all 0.22s; }
+  .icon-action:hover { border-color: rgba(37,99,235,0.5) !important; background: rgba(37,99,235,0.1) !important; }
+  #cart-drawer  { transition: transform 0.36s cubic-bezier(0.22,1,0.36,1); }
+  #cart-overlay { transition: opacity 0.3s ease; }
+
+  .cat-pill { transition: all 0.22s; cursor: pointer; }
+  .cat-pill:hover { background: rgba(37,99,235,0.12) !important; border-color: rgba(37,99,235,0.35) !important; }
+  .cat-pill.active { background: rgba(37,99,235,0.15) !important; border-color: rgba(37,99,235,0.5) !important; color: #60A5FA !important; }
+
+  .footer-link { transition: color 0.2s; }
+  .footer-link:hover { color: #60A5FA !important; }
+  .social-btn { transition: all 0.22s; }
+  .social-btn:hover { background: rgba(37,99,235,0.12) !important; border-color: rgba(37,99,235,0.35) !important; }
+
+  input[type="search"]::-webkit-search-cancel-button { display: none; }
+  select { -webkit-appearance: none; -moz-appearance: none; appearance: none; }
+
+  html.dz-light #main-nav.scrolled { background: rgba(238,242,255,0.96) !important; border-bottom-color: rgba(37,99,235,0.12) !important; box-shadow: 0 2px 36px rgba(0,0,0,0.08) !important; }
+  html.dz-light .nav-link:hover { color: #1E3A8A !important; background: rgba(37,99,235,0.08) !important; }
+  html.dz-light .cat-pill { background: #FFFFFF !important; border-color: rgba(0,0,0,0.12) !important; color: #374151 !important; }
+  html.dz-light .cat-pill.active { background: rgba(37,99,235,0.1) !important; border-color: rgba(37,99,235,0.4) !important; color: #2563EB !important; }
+  html.dz-light .cat-pill:hover { background: rgba(37,99,235,0.07) !important; border-color: rgba(37,99,235,0.25) !important; color: #2563EB !important; }
+</style>
+<link rel="stylesheet" href="/responsive.css">
+<script>try{if(localStorage.getItem('dz_lang')==='fr'){var _lf=document.createElement('style');_lf.id='dz-lf';_lf.textContent='body{opacity:0}';document.head.appendChild(_lf);}}catch(e){}</script>
+<script>try{if(localStorage.getItem('dz_theme')==='light'){document.documentElement.classList.add('dz-light');var _af=document.createElement('style');_af.textContent='html.dz-light,html.dz-light body,html.dz-light #page-root{background:#F0F4FF!important;color:#111827!important}'+'html.dz-light [style*="#070B12"]{background:#F0F4FF!important}'+'html.dz-light [style*="#0A1220"]{background:#E8EEFF!important}'+'html.dz-light [style*="#0A1120"]{background:#ECEFFF!important}'+'html.dz-light [style*="#080E1C"]{background:#EEF3FF!important}'+'html.dz-light [style*="#0D1421"]{background:#EEF2FF!important}'+'html.dz-light [style*="#040710"]{background:#E4EBFF!important}'+'html.dz-light [style*="#141E30"]{background:#FFFFFF!important}'+'html.dz-light [style*="#1C2A42"]{background:#EDF2FF!important}'+'html.dz-light [style*="#1E2E48"]{background:#DCE7FF!important}'+'html.dz-light [style*="#111B2E"]{background:#F8FAFF!important;color:#111827!important}'+'html.dz-light [style*="#0E1929"]{background:#FFFFFF!important}'+'html.dz-light [style*="#111B30"]{background:#F8FAFF!important}'+'html.dz-light [style*="#060D1A"]{background:#F0F4FF!important}'+'html.dz-light [style*="color:#fff"]{color:#111827!important}'+'html.dz-light [style*="color: #fff"]{color:#111827!important}'+'html.dz-light [style*="color:#ffffff"]{color:#111827!important}'+'html.dz-light [style*="color:#FFFFFF"]{color:#111827!important}'+'html.dz-light [style*="color:#94A3B8"]{color:#374151!important}'+'html.dz-light [style*="color:#475569"]{color:#4B5563!important}';document.head.appendChild(_af);}}catch(e){}</script>
+</head>
+<body>
+<div id="page-root" style="font-family:'Cairo',sans-serif; background:#070B12; color:#fff; min-height:100vh;">
+
+  <!-- NAVBAR -->
+  <nav id="main-nav" style="position:fixed;top:0;right:0;left:0;z-index:1000;height:68px;display:flex;align-items:center;justify-content:space-between;padding:0 52px;transition:background 0.4s ease,box-shadow 0.4s ease,border-color 0.4s ease;border-bottom:1px solid transparent;">
+    <a href="/" style="display:flex;align-items:center;gap:10px;cursor:pointer;text-decoration:none;">
+      <div style="width:34px;height:34px;background:linear-gradient(135deg,#2563EB,#1D4ED8);border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 4px 14px rgba(37,99,235,0.4);">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+      </div>
+      <div>
+        <div style="font-weight:800;font-size:17px;letter-spacing:-0.3px;color:#fff;line-height:1.1;">Dz One</div>
+        <div style="font-size:9px;color:#475569;line-height:1;margin-top:2px;">تقنية · خبرة · أمان</div>
+      </div>
+    </a>
+    <div style="display:flex;align-items:center;gap:2px;">
+      <a href="/" class="nav-link" style="font-size:14px;font-weight:500;color:#94A3B8;text-decoration:none;padding:8px 16px;border-radius:8px;">الرئيسية</a>
+      <a href="/store.html" class="nav-link" style="font-size:14px;font-weight:700;color:#60A5FA;text-decoration:none;padding:8px 16px;background:rgba(37,99,235,0.1);border-radius:8px;border:1px solid rgba(37,99,235,0.22);">المتجر</a>
+      <a href="/builder.html" class="nav-link" style="font-size:14px;font-weight:500;color:#94A3B8;text-decoration:none;padding:8px 16px;border-radius:8px;">PC Builder</a>
+      <a href="/track.html" class="nav-link" style="font-size:14px;font-weight:500;color:#94A3B8;text-decoration:none;padding:8px 16px;border-radius:8px;">تتبع طلبي</a>
+      <a href="/wishlist.html" class="nav-link" style="font-size:14px;font-weight:500;color:#94A3B8;text-decoration:none;padding:8px 16px;border-radius:8px;">المفضلة</a>
+      <a href="/about.html" class="nav-link" style="font-size:14px;font-weight:500;color:#94A3B8;text-decoration:none;padding:8px 16px;border-radius:8px;">من نحن</a>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;">
+      <button id="theme-toggle" type="button" title="تبديل الوضع" style="position:relative;width:44px;height:24px;background:#1C2A42;border:1px solid rgba(255,255,255,0.12);border-radius:12px;cursor:pointer;transition:all 0.35s;padding:0;flex-shrink:0;">
+        <div id="theme-thumb" style="position:absolute;top:3px;right:3px;width:16px;height:16px;background:linear-gradient(135deg,#60A5FA,#3B82F6);border-radius:50%;transition:all 0.35s ease;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(37,99,235,0.5);">
+          <svg id="icon-moon" width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+          <svg id="icon-sun" width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:none;"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+        </div>
+      </button>
+      <div style="display:flex;align-items:center;gap:5px;font-size:13px;color:#475569;">
+        <span data-lang-btn="ar" style="cursor:pointer;font-weight:800;color:#60A5FA;">AR</span><span style="opacity:0.3;color:#475569;">|</span><span data-lang-btn="fr" style="cursor:pointer;color:#475569;">FR</span>
+      </div>
+      <a href="/wishlist.html" id="nav-wl-icon" class="icon-action" style="width:38px;height:38px;border:1px solid rgba(255,255,255,0.09);border-radius:9px;display:flex;align-items:center;justify-content:center;cursor:pointer;text-decoration:none;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+      </a>
+      <div id="cart-btn" class="icon-action" style="position:relative;width:38px;height:38px;border:1px solid rgba(255,255,255,0.09);border-radius:9px;display:flex;align-items:center;justify-content:center;cursor:pointer;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+        <span id="cart-badge" style="display:none;position:absolute;top:-7px;right:-7px;min-width:18px;height:18px;padding:0 4px;background:#EF4444;border-radius:9px;font-size:10px;font-weight:800;color:#fff;align-items:center;justify-content:center;border:2px solid #070B12;line-height:1;"></span>
+      </div>
+    </div>
+  </nav>
+
+  <!-- PAGE HEADER -->
+  <div style="padding:100px 60px 0; background:linear-gradient(180deg,#0A1220 0%,#070B12 100%); border-bottom:1px solid rgba(255,255,255,0.05);">
+    <div style="max-width:1440px;margin:0 auto;padding-bottom:40px;">
+      <div style="animation:fadeInUp 0.8s ease both;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+          <a href="/" style="font-size:13px;color:#475569;text-decoration:none;">الرئيسية</a>
+          <span style="color:#334155;">/</span>
+          <span style="font-size:13px;color:#60A5FA;">المتجر</span>
+        </div>
+        <h1 style="font-size:42px;font-weight:900;color:#fff;margin:0 0 10px;letter-spacing:-0.5px;">المتجر</h1>
+        <p style="font-size:15px;color:#475569;margin:0;">تصفح مجموعتنا الكاملة من المنتجات التقنية</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- STICKY FILTER BAR -->
+  <div id="filter-bar" style="position:sticky;top:68px;z-index:200;background:#0D1421;border-bottom:1px solid rgba(255,255,255,0.06);padding:14px 60px;">
+    <div style="max-width:1440px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;">
+      <!-- Category pills -->
+      <div id="cat-pills" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+        <button class="cat-pill active" data-cat="الكل" style="padding:7px 16px;background:rgba(37,99,235,0.15);border:1px solid rgba(37,99,235,0.5);border-radius:100px;color:#60A5FA;font-family:'Cairo',sans-serif;font-size:13px;font-weight:700;">الكل</button>
+        <button class="cat-pill" data-cat="معالجات" style="padding:7px 16px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:100px;color:#94A3B8;font-family:'Cairo',sans-serif;font-size:13px;font-weight:600;">معالجات</button>
+        <button class="cat-pill" data-cat="كروت شاشة" style="padding:7px 16px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:100px;color:#94A3B8;font-family:'Cairo',sans-serif;font-size:13px;font-weight:600;">كروت شاشة</button>
+        <button class="cat-pill" data-cat="ذاكرة RAM" style="padding:7px 16px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:100px;color:#94A3B8;font-family:'Cairo',sans-serif;font-size:13px;font-weight:600;">ذاكرة RAM</button>
+        <button class="cat-pill" data-cat="تخزين" style="padding:7px 16px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:100px;color:#94A3B8;font-family:'Cairo',sans-serif;font-size:13px;font-weight:600;">تخزين</button>
+        <button class="cat-pill" data-cat="لوحات أم" style="padding:7px 16px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:100px;color:#94A3B8;font-family:'Cairo',sans-serif;font-size:13px;font-weight:600;">لوحات أم</button>
+        <button class="cat-pill" data-cat="تجميعات جاهزة" style="padding:7px 16px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:100px;color:#94A3B8;font-family:'Cairo',sans-serif;font-size:13px;font-weight:600;">تجميعات جاهزة</button>
+        <button class="cat-pill" data-cat="شاشات" style="padding:7px 16px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:100px;color:#94A3B8;font-family:'Cairo',sans-serif;font-size:13px;font-weight:600;">شاشات</button>
+        <button class="cat-pill" data-cat="تبريد" style="padding:7px 16px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:100px;color:#94A3B8;font-family:'Cairo',sans-serif;font-size:13px;font-weight:600;">تبريد</button>
+        <button class="cat-pill" data-cat="أبراج" style="padding:7px 16px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:100px;color:#94A3B8;font-family:'Cairo',sans-serif;font-size:13px;font-weight:600;">أبراج</button>
+        <button class="cat-pill" data-cat="طاقة" style="padding:7px 16px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:100px;color:#94A3B8;font-family:'Cairo',sans-serif;font-size:13px;font-weight:600;">طاقة</button>
+      </div>
+      <!-- Search + Sort -->
+      <div style="display:flex;align-items:center;gap:10px;flex-shrink:0;">
+        <div style="position:relative;">
+          <input id="search-input" type="search" placeholder="ابحث عن منتج..." style="width:220px;padding:9px 14px 9px 38px;background:#111B2E;border:1px solid rgba(255,255,255,0.1);border-radius:10px;color:#fff;font-family:'Cairo',sans-serif;font-size:13px;outline:none;direction:rtl;">
+          <svg style="position:absolute;left:12px;top:50%;transform:translateY(-50%);pointer-events:none;" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#475569" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        </div>
+        <div style="position:relative;">
+          <select id="sort-select" style="padding:9px 36px 9px 14px;background:#111B2E;border:1px solid rgba(255,255,255,0.1);border-radius:10px;color:#94A3B8;font-family:'Cairo',sans-serif;font-size:13px;outline:none;cursor:pointer;min-width:150px;">
+            <option value="reviews">الأكثر بيعاً</option>
+            <option value="price_asc">السعر ↑</option>
+            <option value="price_desc">السعر ↓</option>
+            <option value="newest">الأحدث</option>
+          </select>
+          <svg style="position:absolute;left:10px;top:50%;transform:translateY(-50%);pointer-events:none;" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#475569" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN CONTENT -->
+  <div style="max-width:1440px;margin:0 auto;padding:36px 60px 80px;">
+    <!-- Product count -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:28px;">
+      <span id="product-count" style="font-size:14px;color:#475569;font-weight:600;">جاري التحميل...</span>
+    </div>
+    <!-- Grid -->
+    <div id="store-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:22px;min-height:200px;"></div>
+    <!-- Load more -->
+    <div style="text-align:center;margin-top:48px;">
+      <button id="load-more-btn" style="display:none;padding:13px 44px;background:transparent;border:1px solid rgba(37,99,235,0.35);border-radius:12px;color:#60A5FA;font-family:'Cairo',sans-serif;font-size:15px;font-weight:700;cursor:pointer;transition:all 0.25s;">تحميل المزيد</button>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <footer id="main-footer" style="background:#040710;border-top:1px solid rgba(255,255,255,0.05);padding:80px 60px 40px;">
+    <div style="max-width:1200px;margin:0 auto;">
+      <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1.2fr;gap:56px;margin-bottom:64px;">
+        <div>
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;">
+            <div style="width:34px;height:34px;background:linear-gradient(135deg,#2563EB,#1D4ED8);border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 4px 12px rgba(37,99,235,0.35);"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></div>
+            <div><div style="font-weight:800;font-size:17px;color:#fff;line-height:1.1;">Dz One</div><div style="font-size:9px;color:#334155;margin-top:2px;">تقنية · خبرة · أمان</div></div>
+          </div>
+          <p style="font-size:13px;color:#334155;line-height:1.9;margin:0 0 28px;max-width:255px;">وجهتك الأولى للتجميعات الجاهزة والمكونات التقنية من الجزائر.</p>
+          <div style="display:flex;flex-direction:column;gap:11px;">
+            <div style="display:flex;align-items:center;gap:10px;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg><span style="font-size:12px;color:#334155;">Dar Elbeida - Alger</span></div>
+            <div style="display:flex;align-items:center;gap:10px;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.07 13.5a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3 2.84h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.09 10a16 16 0 0 0 6.9 6.9l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 17.92v-.98z"/></svg><span style="font-size:12px;color:#334155;">+213 648 321 485</span></div>
+            <div style="display:flex;align-items:center;gap:10px;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg><span style="font-size:12px;color:#334155;">dzonescore@gmail.com</span></div>
+          </div>
+        </div>
+        <div>
+          <h4 style="font-size:14px;font-weight:700;color:#fff;margin:0 0 24px;">الفئات</h4>
+          <div style="display:flex;flex-direction:column;gap:12px;">
+            <a href="/store.html?cat=تجميعات جاهزة" class="footer-link" style="font-size:13px;color:#334155;text-decoration:none;">تجميعات جاهزة</a>
+            <a href="/store.html?cat=معالجات" class="footer-link" style="font-size:13px;color:#334155;text-decoration:none;">معالجات</a>
+            <a href="/store.html?cat=كروت شاشة" class="footer-link" style="font-size:13px;color:#334155;text-decoration:none;">كروت شاشة</a>
+            <a href="/store.html?cat=لوحات أم" class="footer-link" style="font-size:13px;color:#334155;text-decoration:none;">لوحات أم</a>
+            <a href="/store.html?cat=ذاكرة RAM" class="footer-link" style="font-size:13px;color:#334155;text-decoration:none;">ذاكرة RAM</a>
+            <a href="/store.html?cat=تخزين" class="footer-link" style="font-size:13px;color:#334155;text-decoration:none;">تخزين</a>
+          </div>
+        </div>
+        <div>
+          <h4 style="font-size:14px;font-weight:700;color:#fff;margin:0 0 24px;">روابط سريعة</h4>
+          <div style="display:flex;flex-direction:column;gap:12px;">
+            <a href="/" class="footer-link" style="font-size:13px;color:#334155;text-decoration:none;">الرئيسية</a>
+            <a href="/store.html" class="footer-link" style="font-size:13px;color:#334155;text-decoration:none;">المتجر</a>
+            <a href="/builder.html" class="footer-link" style="font-size:13px;color:#334155;text-decoration:none;">PC Builder</a>
+            <a href="/track.html" class="footer-link" style="font-size:13px;color:#334155;text-decoration:none;">تتبع طلبي</a>
+            <a href="/wishlist.html" class="footer-link" style="font-size:13px;color:#334155;text-decoration:none;">المفضلة</a>
+            <a href="/about.html" class="footer-link" style="font-size:13px;color:#334155;text-decoration:none;">من نحن</a>
+          </div>
+        </div>
+        <div>
+          <h4 style="font-size:14px;font-weight:700;color:#fff;margin:0 0 24px;">تواصل معنا</h4>
+          <p style="font-size:13px;color:#334155;line-height:1.8;margin:0 0 22px;">تابعنا لآخر العروض والمنتجات الجديدة</p>
+          <div style="display:flex;gap:10px;">
+            <div class="social-btn" style="width:38px;height:38px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#475569" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg></div>
+            <div class="social-btn" style="width:38px;height:38px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#475569" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22.54 6.42a2.78 2.78 0 0 0-1.95-1.96C18.88 4 12 4 12 4s-6.88 0-8.59.46A2.78 2.78 0 0 0 1.46 6.42 29 29 0 0 0 1 12a29 29 0 0 0 .46 5.58A2.78 2.78 0 0 0 3.41 19.6C5.12 20 12 20 12 20s6.88 0 8.59-.4a2.78 2.78 0 0 0 1.95-1.95A29 29 0 0 0 23 12a29 29 0 0 0-.46-5.58z"/><polygon points="9.75 15.02 15.5 12 9.75 8.98 9.75 15.02"/></svg></div>
+            <div class="social-btn" style="width:38px;height:38px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#475569" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="0.5" fill="#475569"/></svg></div>
+          </div>
+        </div>
+      </div>
+      <div style="border-top:1px solid rgba(255,255,255,0.04);padding-top:28px;display:flex;align-items:center;justify-content:space-between;">
+        <span style="font-size:12px;color:#1E293B;">© TechStore.dz 2025 · صنع بشغف من الجزائر</span>
+        <span style="font-size:12px;color:#1E293B;">جميع الحقوق محفوظة</span>
+      </div>
+    </div>
+  </footer>
+
+</div>
+
+<script src="/config.js"></script>
+<script src="/node_modules/@supabase/supabase-js/dist/umd/supabase.js"></script>
+<script src="/shared.js"></script>
+<script src="/lang.js"></script>
+<script src="/responsive.js" defer></script>
+<script>
+(function() {
+  var PAGE_SIZE    = 12;
+  var currentCat   = 'الكل';
+  var currentSort  = 'reviews';
+  var currentSearch = '';
+  var page         = 0;
+  var totalLoaded  = 0;
+  var hasMore      = true;
+
+  // Read URL params
+  var filterDeals = false;
+  (function() {
+    var params = new URLSearchParams(window.location.search);
+    var cat = params.get('cat');
+    filterDeals = params.get('filter') === 'deals';
+    if (cat) {
+      currentCat = cat;
+      // Update active pill
+      document.querySelectorAll('.cat-pill').forEach(function(p) {
+        var isActive = p.getAttribute('data-cat') === cat;
+        p.classList.toggle('active', isActive);
+        p.style.background    = isActive ? 'rgba(37,99,235,0.15)' : 'rgba(255,255,255,0.04)';
+        p.style.borderColor   = isActive ? 'rgba(37,99,235,0.5)'  : 'rgba(255,255,255,0.08)';
+        p.style.color         = isActive ? '#60A5FA'               : '#94A3B8';
+      });
+    }
+  })();
+
+  function buildQuery() {
+    var sb = window.DZ_SB;
+    if (!sb) return null;
+    var q = sb.from('products').select('*');
+    if (filterDeals) q = q.not('old_price', 'is', null);
+    if (currentCat !== 'الكل') q = q.eq('category_ar', currentCat);
+    if (currentSearch) q = q.ilike('name', '%' + currentSearch + '%');
+    if (currentSort === 'reviews')    q = q.order('reviews',    { ascending: false });
+    else if (currentSort === 'price_asc')  q = q.order('price', { ascending: true  });
+    else if (currentSort === 'price_desc') q = q.order('price', { ascending: false });
+    else if (currentSort === 'newest') q = q.order('id',        { ascending: false });
+    q = q.range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
+    return q;
+  }
+
+  function loadProducts(append) {
+    var grid = document.getElementById('store-grid');
+    var countEl = document.getElementById('product-count');
+    var moreBtn = document.getElementById('load-more-btn');
+    if (!grid) return;
+
+    if (!append) {
+      // Show skeletons
+      var skel = '';
+      for (var i = 0; i < 8; i++) skel += '<div>' + window.DZ_skeleton() + '</div>';
+      grid.innerHTML = skel;
+      if (countEl) countEl.textContent = window.DZ_getLang && window.DZ_getLang() === 'fr' ? 'Chargement...' : 'جاري التحميل...';
+      if (moreBtn) moreBtn.style.display = 'none';
+    }
+
+    var q = buildQuery();
+    if (!q) {
+      if (!append) grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:#475569;padding:60px 0;font-size:15px;">لا يوجد اتصال بقاعدة البيانات</div>';
+      return;
+    }
+
+    q.then(function(r) {
+      if (r.error) {
+        grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:#F87171;padding:60px 0;font-size:15px;">حدث خطأ في التحميل</div>';
+        return;
+      }
+      var data = r.data || [];
+      data.forEach(function(p) { window.DZ_PRODUCTS[p.id] = p; });
+
+      var isFr = window.DZ_getLang && window.DZ_getLang() === 'fr';
+      if (data.length === 0 && !append) {
+        grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:#475569;padding:60px 0;font-size:15px;">لا توجد منتجات تطابق البحث</div>';
+        if (countEl) countEl.textContent = isFr ? '0 produit' : '0 منتج';
+        if (moreBtn) moreBtn.style.display = 'none';
+        return;
+      }
+
+      var html = data.map(function(p, i) { return window.DZ_productCardHTML(p, i * 80, false); }).join('');
+      if (append) {
+        grid.innerHTML += html;
+        totalLoaded += data.length;
+      } else {
+        grid.innerHTML = html;
+        totalLoaded = data.length;
+      }
+
+      hasMore = data.length === PAGE_SIZE;
+      if (moreBtn) moreBtn.style.display = hasMore ? 'inline-block' : 'none';
+      if (countEl) countEl.textContent = totalLoaded + (hasMore ? '+' : '') + (isFr ? ' produit(s)' : ' منتج');
+
+      window.DZ_setupReveal();
+    }).catch(function(e) {
+      console.error('store loadProducts:', e);
+      grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:#F87171;padding:60px 0;">حدث خطأ في التحميل</div>';
+    });
+  }
+
+  function resetAndLoad() {
+    page = 0;
+    totalLoaded = 0;
+    loadProducts(false);
+  }
+
+  // Category pills
+  document.getElementById('cat-pills').addEventListener('click', function(e) {
+    var pill = e.target.closest('.cat-pill');
+    if (!pill) return;
+    currentCat = pill.getAttribute('data-cat');
+    document.querySelectorAll('.cat-pill').forEach(function(p) {
+      var isActive = p === pill;
+      p.classList.toggle('active', isActive);
+      p.style.background  = isActive ? 'rgba(37,99,235,0.15)' : 'rgba(255,255,255,0.04)';
+      p.style.borderColor = isActive ? 'rgba(37,99,235,0.5)'  : 'rgba(255,255,255,0.08)';
+      p.style.color       = isActive ? '#60A5FA'               : '#94A3B8';
+    });
+    resetAndLoad();
+  });
+
+  // Sort
+  document.getElementById('sort-select').addEventListener('change', function() {
+    currentSort = this.value;
+    resetAndLoad();
+  });
+
+  // Search (debounced)
+  var searchTimer;
+  document.getElementById('search-input').addEventListener('input', function() {
+    clearTimeout(searchTimer);
+    var val = this.value;
+    searchTimer = setTimeout(function() {
+      currentSearch = val.trim();
+      resetAndLoad();
+    }, 400);
+  });
+
+  // Load more
+  document.getElementById('load-more-btn').addEventListener('click', function() {
+    page++;
+    loadProducts(true);
+  });
+
+  document.addEventListener('DOMContentLoaded', function() {
+    window.DZ_setupNav();
+    resetAndLoad();
+  });
+})();
+</script>
+</body>
+</html>
