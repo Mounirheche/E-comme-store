@@ -623,11 +623,10 @@ function LoginPage({onLogin,dashLang}){
     if(!uname.trim()||!pwd)return;
     setLoading(true);setErr('');
     try{
-      const hash=await hashPwd(pwd);
       const r=await fetch('/api/login',{
         method:'POST',
         headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({username:uname.trim(),password_hash:hash})
+        body:JSON.stringify({username:uname.trim(),password:pwd})
       });
       const d=await r.json();
       if(r.ok&&d.ok){

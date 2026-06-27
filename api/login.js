@@ -8,12 +8,10 @@ module.exports = async (req, res) => {
 
   let body = req.body;
 
-  // Vercel may pass body as string in some runtimes
   if (typeof body === 'string') {
     try { body = JSON.parse(body); } catch (e) { body = {}; }
   }
 
-  // Manual body collection as fallback
   if (!body || typeof body !== 'object') {
     body = await new Promise((resolve) => {
       let data = '';
@@ -24,16 +22,17 @@ module.exports = async (req, res) => {
     });
   }
 
-  const { username, password_hash } = body || {};
-  const adminUser = process.env.ADMIN_USERNAME;
-  const adminHash = process.env.ADMIN_PASSWORD_HASH;
+  const { username, password } = body || {};
+  // Trim env vars to remove any CR/LF from Windows echo piping
+  const adminUser = (process.env.ADMIN_USERNAME || '').trim();
+  const adminPass = (process.env.ADMIN_PASSWORD || '').trim();
 
-  if (!username || !password_hash) {
+  if (!username || !password) {
     return res.status(400).json({ error: 'Missing fields' });
   }
 
-  if (username === adminUser && password_hash === adminHash) {
-    return res.status(200).json({ ok: true, role: 'admin', username });
+  if (username.trim() === adminUser && password === adminPass) {
+    return res.status(200).json({ ok: true, role: 'admin', username: adminUser });
   }
 
   return res.status(401).json({ ok: false, error: 'Invalid credentials' });
