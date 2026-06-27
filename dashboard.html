@@ -559,10 +559,38 @@ async function hashPwd(p){
 }
 
 async function sbUsers(method,body,filter=''){
-  const url=window.SUPABASE_URL,key=window.SUPABASE_ANON_KEY;
-  const opts={method,headers:{'apikey':key,'Authorization':'Bearer '+key,'Accept':'application/json'}};
-  if(body){opts.headers['Content-Type']='application/json';opts.headers['Prefer']='return=representation';opts.body=JSON.stringify(body);}
-  return fetch(`${url}/rest/v1/dashboard_users${filter}`,opts);
+  if(!sb) return {ok:false,json:async()=>({message:'no connection',code:'NO_SB'})};
+  try{
+    if(method==='GET'){
+      const selM=filter.match(/select=([^&]*)/);
+      const sel=selM?decodeURIComponent(selM[1]):'*';
+      let q=sb.from('dashboard_users').select(sel);
+      const eqs=[...filter.matchAll(/(\w+)=eq\.([^&]*)/g)];
+      for(const[,col,val]of eqs)q=q.eq(col,decodeURIComponent(val));
+      const ordM=filter.match(/order=(\w+)\.(asc|desc)/);
+      if(ordM)q=q.order(ordM[1],{ascending:ordM[2]==='asc'});
+      const limM=filter.match(/limit=(\d+)/);
+      if(limM)q=q.limit(parseInt(limM[1]));
+      const{data,error}=await q;
+      if(error)return{ok:false,json:async()=>({message:error.message,code:error.code})};
+      return{ok:true,json:async()=>data};
+    }
+    if(method==='POST'){
+      const{data,error}=await sb.from('dashboard_users').insert(body).select();
+      if(error)return{ok:false,json:async()=>({message:error.message,code:error.code})};
+      return{ok:true,json:async()=>data};
+    }
+    if(method==='DELETE'){
+      const idM=filter.match(/id=eq\.(\d+)/);
+      if(!idM)return{ok:false,json:async()=>({message:'missing id'})};
+      const{error}=await sb.from('dashboard_users').delete().eq('id',parseInt(idM[1]));
+      if(error)return{ok:false,json:async()=>({message:error.message})};
+      return{ok:true,json:async()=>({})};
+    }
+    return{ok:false,json:async()=>({message:'unknown method'})};
+  }catch(e){
+    return{ok:false,json:async()=>({message:e.message})};
+  }
 }
 
 // ══════════════════════════════════════════════
