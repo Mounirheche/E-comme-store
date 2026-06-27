@@ -59,7 +59,16 @@ setTimeout(function(){
 const {useState,useEffect,useRef,useMemo,useCallback}=React;
 const _sbOk=()=>window.SUPABASE_URL&&!window.SUPABASE_URL.includes('YOUR_PROJECT');
 let sb=null;
-try{if(_sbOk())sb=supabase.createClient(window.SUPABASE_URL,window.SUPABASE_ANON_KEY);}catch(e){console.error('Supabase init:',e);}
+function getSb(){
+  if(!sb){
+    try{
+      if(_sbOk()&&window.supabase&&window.supabase.createClient)
+        sb=window.supabase.createClient(window.SUPABASE_URL,window.SUPABASE_ANON_KEY);
+    }catch(e){console.error('Supabase init:',e);}
+  }
+  return sb;
+}
+try{getSb();}catch(e){}
 const mapProduct=(p)=>({...p,sold:p.sold||0,stock:p.stock??p.in_stock});
 const _getDelIds=()=>{try{return JSON.parse(localStorage.getItem('dz_del_orders')||'[]');}catch(e){return[];}};
 const _addDelId=(id)=>{if(id==null)return;const a=_getDelIds();if(!a.includes(id)){a.push(id);localStorage.setItem('dz_del_orders',JSON.stringify(a));}};
@@ -559,12 +568,13 @@ async function hashPwd(p){
 }
 
 async function sbUsers(method,body,filter=''){
-  if(!sb) return {ok:false,json:async()=>({message:'no connection',code:'NO_SB'})};
+  if(!getSb()) return {ok:false,json:async()=>({message:'no connection',code:'NO_SB'})};
+  const _sb=getSb();
   try{
     if(method==='GET'){
       const selM=filter.match(/select=([^&]*)/);
       const sel=selM?decodeURIComponent(selM[1]):'*';
-      let q=sb.from('dashboard_users').select(sel);
+      let q=_sb.from('dashboard_users').select(sel);
       const eqs=[...filter.matchAll(/(\w+)=eq\.([^&]*)/g)];
       for(const[,col,val]of eqs)q=q.eq(col,decodeURIComponent(val));
       const ordM=filter.match(/order=(\w+)\.(asc|desc)/);
@@ -576,14 +586,14 @@ async function sbUsers(method,body,filter=''){
       return{ok:true,json:async()=>data};
     }
     if(method==='POST'){
-      const{data,error}=await sb.from('dashboard_users').insert(body).select();
+      const{data,error}=await _sb.from('dashboard_users').insert(body).select();
       if(error)return{ok:false,json:async()=>({message:error.message,code:error.code})};
       return{ok:true,json:async()=>data};
     }
     if(method==='DELETE'){
       const idM=filter.match(/id=eq\.(\d+)/);
       if(!idM)return{ok:false,json:async()=>({message:'missing id'})};
-      const{error}=await sb.from('dashboard_users').delete().eq('id',parseInt(idM[1]));
+      const{error}=await _sb.from('dashboard_users').delete().eq('id',parseInt(idM[1]));
       if(error)return{ok:false,json:async()=>({message:error.message})};
       return{ok:true,json:async()=>({})};
     }
@@ -607,9 +617,9 @@ function LoginPage({onLogin,dashLang}){
   const [err,setErr]=useState('');
 
   useEffect(()=>{
-    if(!_sbOk()){setMode('nosql');return;}
+    if(!_sbOk()||!getSb()){setMode('nosql');return;}
     sbUsers('GET','','?select=id&limit=1').then(async r=>{
-      if(!r.ok){const b=await r.json().catch(()=>({}));if(b?.code==='42P01'||b?.message?.includes('does not exist')){setMode('nosql');return;}setMode('login');}
+      if(!r.ok){const b=await r.json().catch(()=>({}));if(b?.code==='42P01'||b?.code==='NO_SB'||b?.message?.includes('does not exist')){setMode('nosql');return;}setMode('login');}
       else{const d=await r.json();setMode(d.length===0?'setup':'login');}
     }).catch(()=>setMode('nosql'));
   },[]);
