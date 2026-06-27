@@ -616,13 +616,7 @@ function LoginPage({onLogin,dashLang}){
   const [loading,setLoading]=useState(false);
   const [err,setErr]=useState('');
 
-  useEffect(()=>{
-    if(!_sbOk()||!getSb()){setMode('nosql');return;}
-    sbUsers('GET','','?select=id&limit=1').then(async r=>{
-      if(!r.ok){const b=await r.json().catch(()=>({}));if(b?.code==='42P01'||b?.code==='NO_SB'||b?.message?.includes('does not exist')){setMode('nosql');return;}setMode('login');}
-      else{const d=await r.json();setMode(d.length===0?'setup':'login');}
-    }).catch(()=>setMode('nosql'));
-  },[]);
+  useEffect(()=>{setMode('login');},[]);
 
   const handleSubmit=async(e)=>{
     e.preventDefault();
@@ -630,17 +624,16 @@ function LoginPage({onLogin,dashLang}){
     setLoading(true);setErr('');
     try{
       const hash=await hashPwd(pwd);
-      if(mode==='setup'){
-        const r=await sbUsers('POST',{username:uname.trim(),password_hash:hash,role:'admin'});
-        if(r.ok){onLogin({username:uname.trim(),role:'admin'});}
-        else{setErr(dl.errNet);}
+      const r=await fetch('/api/login',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({username:uname.trim(),password_hash:hash})
+      });
+      const d=await r.json();
+      if(r.ok&&d.ok){
+        onLogin({username:d.username,role:d.role});
       } else {
-        const r=await sbUsers('GET','',`?username=eq.${encodeURIComponent(uname.trim())}&password_hash=eq.${encodeURIComponent(hash)}&select=username,role`);
-        if(r.ok){
-          const d=await r.json();
-          if(d?.length>0)onLogin({username:d[0].username,role:d[0].role});
-          else setErr(dl.errWrong);
-        } else setErr(dl.errNet);
+        setErr(dl.errWrong);
       }
     }catch(e){setErr(dl.errNet);}
     setLoading(false);
